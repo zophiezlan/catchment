@@ -1,4 +1,10 @@
-import { useState, useCallback, useRef, createContext, useContext } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  createContext,
+  useContext,
+} from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const ToastContext = createContext(null);
@@ -13,15 +19,18 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const timers = useRef({});
 
-  const toast = useCallback((message, { type = "success", duration = 2500 } = {}) => {
-    const id = ++toastId;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    timers.current[id] = setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-      delete timers.current[id];
-    }, duration);
-    return id;
-  }, []);
+  const toast = useCallback(
+    (message, { type = "success", duration = 2500 } = {}) => {
+      const id = ++toastId;
+      setToasts((prev) => [...prev, { id, message, type }]);
+      timers.current[id] = setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+        delete timers.current[id];
+      }, duration);
+      return id;
+    },
+    [],
+  );
 
   const dismiss = useCallback((id) => {
     clearTimeout(timers.current[id]);

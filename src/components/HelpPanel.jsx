@@ -24,7 +24,10 @@ const SECTIONS = [
       ["MMM", "Modified Monash Model (1=Metro to 7=Very remote)"],
       ["RA", "Remoteness Area (ABS classification, 1–5)"],
       ["PHN", "Primary Health Network — regional health planning body"],
-      ["IRSD", "Index of Relative Socio-economic Disadvantage (decile 1=most, 10=least)"],
+      [
+        "IRSD",
+        "Index of Relative Socio-economic Disadvantage (decile 1=most, 10=least)",
+      ],
       ["ERP", "Estimated Resident Population (ABS Census 2021)"],
     ],
   },
@@ -117,9 +120,7 @@ export default function HelpPanel({ onClose }) {
               marginBottom: i < SECTIONS.length - 1 ? 16 : 0,
               paddingBottom: i < SECTIONS.length - 1 ? 16 : 0,
               borderBottom:
-                i < SECTIONS.length - 1
-                  ? "1px solid var(--c-border)"
-                  : "none",
+                i < SECTIONS.length - 1 ? "1px solid var(--c-border)" : "none",
             }}
           >
             <div
@@ -150,10 +151,7 @@ export default function HelpPanel({ onClose }) {
             {s.items && (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {s.items.map(([term, def]) => (
-                  <div
-                    key={term}
-                    style={{ fontSize: 13, lineHeight: 1.5 }}
-                  >
+                  <div key={term} style={{ fontSize: 13, lineHeight: 1.5 }}>
                     <strong
                       style={{
                         fontFamily: "var(--font-mono)",

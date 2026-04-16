@@ -1,4 +1,11 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HelpPanel from "./components/HelpPanel";
@@ -305,7 +312,9 @@ export default function App() {
               height: 30,
               borderRadius: 8,
               border: "1px solid var(--c-border)",
-              background: showHelp ? "var(--c-accent-light)" : "var(--c-surface)",
+              background: showHelp
+                ? "var(--c-accent-light)"
+                : "var(--c-surface)",
               color: showHelp ? "var(--c-accent)" : "var(--c-text3)",
               cursor: "pointer",
               display: "flex",
