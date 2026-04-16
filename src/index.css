@@ -23,12 +23,6 @@
   --c-accent-light: #ecfdf5;
   --c-accent-muted: rgba(5, 150, 105, 0.1);
 
-  /* Zone colours */
-  --zone-metro: #3b82f6;
-  --zone-regional: #059669;
-  --zone-rural: #d97706;
-  --zone-remote: #dc2626;
-
   /* Equity flag */
   --c-equity-flag: #ef4444;
   --c-equity-flag-bg: #fef2f2;

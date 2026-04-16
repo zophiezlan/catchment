@@ -14,8 +14,9 @@ A postcode lookup and analysis dashboard for harm reduction service planning. Bu
 
 - **Overview** — national distribution across zones, remoteness, states, IRSD deciles
 - **Lookup** — single postcode search with full detail card
-- **Cohort** — paste a list of postcodes, get aggregate equity and geography profile
+- **Cohort Analyser** — paste a list of postcodes, get aggregate equity and geography profile
 - **Explorer** — filter by state, zone, RA, PHN, IRSD range; paginated table
+- **NSW LHDs** — Local Health District breakdown for NSW postcodes
 
 ## Setup
 
@@ -45,7 +46,9 @@ src/
     Overview.jsx         — national overview tab
     Lookup.jsx           — single postcode search tab
     CohortAnalyser.jsx   — batch postcode analysis tab
+    CohortCompare.jsx    — cohort comparison sub-component
     Explorer.jsx         — filter + browse tab
+    LHDView.jsx          — NSW Local Health District tab
   App.jsx                — tab navigation shell
   main.jsx               — React entry point
   index.css              — design tokens, global styles
