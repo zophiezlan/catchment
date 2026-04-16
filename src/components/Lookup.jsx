@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   IDX,
@@ -10,18 +10,47 @@ import {
 } from "../utils/data";
 import { Pill, EquityBar, FieldLabel, Card, EmptyState } from "./Shared";
 
+function useDebounce(callback, delay) {
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return useCallback(
+    (...args) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => callback(...args), delay);
+    },
+    [callback, delay],
+  );
+}
+
 export default function Lookup() {
   const [q, setQ] = useState("");
   const [res, setRes] = useState(null);
   const [sugg, setSugg] = useState([]);
   const [open, setOpen] = useState(false);
   const [si, setSi] = useState(-1);
+  const [hint, setHint] = useState("");
   const iRef = useRef(null);
+
+  const debouncedSearch = useDebounce((t) => {
+    const m = searchPostcodes(t, 8);
+    setSugg(m);
+    setOpen(m.length > 0);
+  }, 180);
 
   function doSearch(v) {
     setQ(v);
     setSi(-1);
+    setHint("");
     const t = v.trim();
+
+    // Validate: if it looks numeric but isn't a valid format, show hint
+    if (/^\d+$/.test(t) && t.length > 4) {
+      setHint("Australian postcodes are 3-4 digits");
+      setSugg([]);
+      setOpen(false);
+      setRes(null);
+      return;
+    }
 
     // Exact postcode match — show card immediately
     const n = Number(t);
@@ -32,11 +61,9 @@ export default function Lookup() {
       return;
     }
 
-    // Search by postcode prefix or place name (2+ chars)
+    // Search by postcode prefix or place name (2+ chars) — debounced
     if (t.length >= 2) {
-      const m = searchPostcodes(t, 8);
-      setSugg(m);
-      setOpen(m.length > 0);
+      debouncedSearch(t);
     } else {
       setSugg([]);
       setOpen(false);
@@ -129,6 +156,7 @@ export default function Lookup() {
                 setRes(null);
                 setSugg([]);
                 setOpen(false);
+                setHint("");
                 iRef.current?.focus();
               }}
               aria-label="Clear search"
@@ -240,6 +268,36 @@ export default function Lookup() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Validation hint */}
+        {hint && (
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: "#d97706",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
+              <circle cx="7" cy="7" r="5.5" />
+              <path d="M7 4.5v3" />
+              <circle cx="7" cy="10" r="0.5" fill="currentColor" />
+            </svg>
+            {hint}
+          </div>
+        )}
       </div>
 
       {/* Result card */}

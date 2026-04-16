@@ -225,6 +225,12 @@ a:hover {
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ===== Selection ===== */
 ::selection {
   background: var(--c-accent);
@@ -241,6 +247,32 @@ a:hover {
   }
   .hide-mobile {
     display: none !important;
+  }
+
+  /* Sticky first column in Explorer table */
+  table th:first-child,
+  table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: inherit;
+  }
+
+  /* Compact table cells on mobile */
+  table td,
+  table th {
+    padding: 7px 8px !important;
+    font-size: 12px !important;
+  }
+
+  /* Filter bar wraps better on mobile */
+  nav[role="tablist"] {
+    gap: 0 !important;
+  }
+  nav[role="tablist"] button {
+    padding: 8px 12px 10px !important;
+    font-size: 12px !important;
+    gap: 5px !important;
   }
 }
 
@@ -264,7 +296,38 @@ nav[role="tablist"]::-webkit-scrollbar {
 /* ===== Print styles ===== */
 @media print {
   body {
-    background: white;
-    color: black;
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide interactive-only elements */
+  nav[role="tablist"],
+  button,
+  textarea,
+  input,
+  select,
+  footer {
+    display: none !important;
+  }
+
+  /* Remove shadows and animations */
+  * {
+    box-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Cards print with borders only */
+  div[style*="border-radius"] {
+    break-inside: avoid;
+  }
+
+  /* Full width */
+  body > div {
+    max-width: 100% !important;
+    padding: 0 !important;
   }
 }

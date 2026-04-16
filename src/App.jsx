@@ -1,10 +1,14 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import Overview from "./components/Overview";
-import Lookup from "./components/Lookup";
-import CohortAnalyser from "./components/CohortAnalyser";
-import Explorer from "./components/Explorer";
-import LHDView from "./components/LHDView";
+import ErrorBoundary from "./components/ErrorBoundary";
+import HelpPanel from "./components/HelpPanel";
+
+// Lazy-load tab components for code splitting
+const Overview = lazy(() => import("./components/Overview"));
+const Lookup = lazy(() => import("./components/Lookup"));
+const CohortAnalyser = lazy(() => import("./components/CohortAnalyser"));
+const Explorer = lazy(() => import("./components/Explorer"));
+const LHDView = lazy(() => import("./components/LHDView"));
 
 const TABS = [
   {
@@ -110,6 +114,8 @@ const TABS = [
   },
 ];
 
+const TAB_IDS = new Set(TABS.map((t) => t.id));
+
 const TAB_COMPONENTS = {
   overview: Overview,
   lookup: Lookup,
@@ -124,14 +130,89 @@ const tabVariants = {
   exit: { opacity: 0, y: -4 },
 };
 
+function TabFallback() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+        color: "var(--c-text3)",
+        fontSize: 13,
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: "50%",
+          border: "2px solid var(--c-border2)",
+          borderTopColor: "var(--c-accent)",
+          animation: "spin 0.6s linear infinite",
+        }}
+      />
+      Loading...
+    </div>
+  );
+}
+
+function getInitialTab() {
+  const hash = window.location.hash.slice(1);
+  return TAB_IDS.has(hash) ? hash : "overview";
+}
+
 export default function App() {
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(getInitialTab);
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Sync tab ↔ URL hash
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (TAB_IDS.has(hash)) setTab(hash);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const handleTabChange = useCallback(
     (id) => {
-      if (id !== tab) setTab(id);
+      if (id !== tab) {
+        setTab(id);
+        window.history.replaceState(null, "", `#${id}`);
+      }
     },
     [tab],
+  );
+
+  const tabRefs = useRef({});
+
+  const handleTabKeyDown = useCallback(
+    (e) => {
+      const ids = TABS.map((t) => t.id);
+      const idx = ids.indexOf(tab);
+      let next = -1;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        next = (idx + 1) % ids.length;
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        next = (idx - 1 + ids.length) % ids.length;
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        next = 0;
+      } else if (e.key === "End") {
+        e.preventDefault();
+        next = ids.length - 1;
+      }
+      if (next >= 0) {
+        handleTabChange(ids[next]);
+        tabRefs.current[ids[next]]?.focus();
+      }
+    },
+    [tab, handleTabChange],
   );
 
   const TabContent = TAB_COMPONENTS[tab];
@@ -210,27 +291,66 @@ export default function App() {
 
         <div
           style={{
-            fontSize: 11,
-            color: "var(--c-text3)",
-            textAlign: "right",
-            lineHeight: 1.5,
             display: "flex",
             alignItems: "center",
-            gap: 6,
+            gap: 10,
           }}
         >
-          <span
+          <button
+            onClick={() => setShowHelp((h) => !h)}
+            aria-label="Help"
+            title="Quick guide"
             style={{
-              display: "inline-block",
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: "#059669",
-              boxShadow: "0 0 0 2px rgba(5, 150, 105, 0.2)",
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              border: "1px solid var(--c-border)",
+              background: showHelp ? "var(--c-accent-light)" : "var(--c-surface)",
+              color: showHelp ? "var(--c-accent)" : "var(--c-text3)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.15s ease",
               flexShrink: 0,
             }}
-          />
-          <span className="hide-mobile">2,957 postcodes loaded</span>
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
+              <circle cx="8" cy="8" r="6" />
+              <path d="M6.5 6.2a1.6 1.6 0 113 1.3c-.5.3-.9.7-.9 1.5" />
+              <circle cx="8" cy="12" r="0.5" fill="currentColor" />
+            </svg>
+          </button>
+          <div
+            style={{
+              fontSize: 11,
+              color: "var(--c-text3)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: "#059669",
+                boxShadow: "0 0 0 2px rgba(5, 150, 105, 0.2)",
+                flexShrink: 0,
+              }}
+            />
+            <span className="hide-mobile">2,957 postcodes loaded</span>
+          </div>
         </div>
       </header>
 
@@ -253,10 +373,13 @@ export default function App() {
           return (
             <button
               key={t.id}
+              ref={(el) => (tabRefs.current[t.id] = el)}
               role="tab"
               aria-selected={active}
               aria-controls={`panel-${t.id}`}
+              tabIndex={active ? 0 : -1}
               onClick={() => handleTabChange(t.id)}
+              onKeyDown={handleTabKeyDown}
               style={{
                 padding: "10px 16px 12px",
                 fontSize: 13,
@@ -291,22 +414,31 @@ export default function App() {
         })}
       </nav>
 
+      {/* Help panel */}
+      <AnimatePresence>
+        {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
+      </AnimatePresence>
+
       {/* Tab content with animation */}
       <main>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={tab}
-            id={`panel-${tab}`}
-            role="tabpanel"
-            variants={tabVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <TabContent />
-          </motion.div>
-        </AnimatePresence>
+        <ErrorBoundary key={tab}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tab}
+              id={`panel-${tab}`}
+              role="tabpanel"
+              variants={tabVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <Suspense fallback={<TabFallback />}>
+                <TabContent />
+              </Suspense>
+            </motion.div>
+          </AnimatePresence>
+        </ErrorBoundary>
       </main>
 
       {/* Footer */}

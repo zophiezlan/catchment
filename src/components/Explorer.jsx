@@ -13,6 +13,7 @@ import {
   toCSV,
 } from "../utils/data";
 import { MetricCard, EquityBar, Card, EmptyState } from "./Shared";
+import { useToast } from "./Toast";
 
 const SEL_STYLE = {
   padding: "9px 32px 9px 12px",
@@ -38,6 +39,7 @@ const SORT_FIELDS = {
 };
 
 export default function Explorer() {
+  const toast = useToast();
   const [fState, setFS] = useState("");
   const [fZone, setFZ] = useState("");
   const [fRA, setFRA] = useState("");
@@ -136,13 +138,33 @@ export default function Explorer() {
       <span
         style={{
           display: "inline-flex",
+          flexDirection: "column",
           marginLeft: 3,
-          opacity: active ? 1 : 0,
-          transition: "opacity 0.15s",
-          fontSize: 10,
+          lineHeight: 0,
+          gap: 1,
+          verticalAlign: "middle",
         }}
       >
-        {sortAsc ? "▲" : "▼"}
+        <span
+          style={{
+            fontSize: 8,
+            opacity: active && sortAsc ? 1 : 0.25,
+            color: active && sortAsc ? "var(--c-accent)" : "var(--c-text3)",
+            transition: "all 0.15s",
+          }}
+        >
+          ▲
+        </span>
+        <span
+          style={{
+            fontSize: 8,
+            opacity: active && !sortAsc ? 1 : 0.25,
+            color: active && !sortAsc ? "var(--c-accent)" : "var(--c-text3)",
+            transition: "all 0.15s",
+          }}
+        >
+          ▼
+        </span>
       </span>
     );
   }
@@ -326,6 +348,7 @@ export default function Explorer() {
             link.download = `postcodes-export-${new Date().toISOString().slice(0, 10)}.csv`;
             link.click();
             URL.revokeObjectURL(url);
+            toast(`Exported ${filtered.length} postcodes as CSV`);
           }}
           aria-label="Export filtered postcodes as CSV"
           style={{

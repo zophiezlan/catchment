@@ -19,6 +19,7 @@ import {
   EmptyState,
 } from "./Shared";
 import CohortCompare from "./CohortCompare";
+import { useToast } from "./Toast";
 
 const STORAGE_KEY = "saved-cohorts";
 
@@ -31,10 +32,34 @@ function loadSavedCohorts() {
   }
 }
 
+function getStorageUsage() {
+  try {
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      total += (localStorage.getItem(key) || "").length;
+    }
+    // Approximate bytes (UTF-16 = 2 bytes per char)
+    return { usedKB: Math.round((total * 2) / 1024), limitKB: 5120 };
+  } catch {
+    return { usedKB: 0, limitKB: 5120 };
+  }
+}
+
 function persistCohorts(cohorts) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cohorts));
-  } catch {}
+    const data = JSON.stringify(cohorts);
+    const sizeKB = Math.round((data.length * 2) / 1024);
+    const { usedKB, limitKB } = getStorageUsage();
+    if (usedKB + sizeKB > limitKB * 0.9) {
+      console.warn("LocalStorage near capacity — cohort not saved");
+      return false;
+    }
+    localStorage.setItem(STORAGE_KEY, data);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function generateSummary(r) {
@@ -71,9 +96,9 @@ function generateSummary(r) {
 }
 
 export default function CohortAnalyser() {
+  const toast = useToast();
   const [raw, setRaw] = useState("");
   const [results, setResults] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [savedCohorts, setSavedCohorts] = useState(loadSavedCohorts);
@@ -91,6 +116,8 @@ export default function CohortAnalyser() {
     if (showSaveDialog && saveInputRef.current) saveInputRef.current.focus();
   }, [showSaveDialog]);
 
+  const [storageWarning, setStorageWarning] = useState("");
+
   const saveCohort = useCallback(
     (name) => {
       if (!results || results.empty || !name.trim()) return;
@@ -102,10 +129,19 @@ export default function CohortAnalyser() {
         results,
       };
       const updated = [cohort, ...savedCohorts];
+      const ok = persistCohorts(updated);
+      if (!ok) {
+        setStorageWarning(
+          "Browser storage is nearly full. Delete old cohorts to free space.",
+        );
+        toast("Storage full — cohort not saved", { type: "warning" });
+        return;
+      }
       setSavedCohorts(updated);
-      persistCohorts(updated);
       setShowSaveDialog(false);
       setSaveName("");
+      setStorageWarning("");
+      toast(`Cohort "${name.trim()}" saved`);
     },
     [results, raw, savedCohorts],
   );
@@ -116,8 +152,9 @@ export default function CohortAnalyser() {
       setSavedCohorts(updated);
       persistCohorts(updated);
       setConfirmDelete(null);
+      toast("Cohort deleted");
     },
-    [savedCohorts],
+    [savedCohorts, toast],
   );
 
   const loadCohort = useCallback((cohort) => {
@@ -195,20 +232,17 @@ export default function CohortAnalyser() {
     const text = generateSummary(results);
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      toast("Summary copied to clipboard");
     } catch {
-      // Fallback for older browsers
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      toast("Summary copied to clipboard");
     }
-  }, [results]);
+  }, [results, toast]);
 
   const handleExportPNG = useCallback(async () => {
     if (!resultsRef.current || exporting) return;
@@ -225,8 +259,10 @@ export default function CohortAnalyser() {
       link.download = `cohort-analysis-${new Date().toISOString().slice(0, 10)}.png`;
       link.href = dataUrl;
       link.click();
+      toast("PNG exported");
     } catch (err) {
       console.error("Export failed:", err);
+      toast("Export failed — try again", { type: "error" });
     }
     setExporting(false);
   }, [exporting]);
@@ -942,10 +978,8 @@ export default function CohortAnalyser() {
                       padding: "8px 16px",
                       borderRadius: "var(--radius-sm)",
                       border: "1px solid rgba(5, 150, 105, 0.25)",
-                      background: copied
-                        ? "var(--c-accent)"
-                        : "var(--c-surface)",
-                      color: copied ? "#fff" : "var(--c-accent)",
+                      background: "var(--c-surface)",
+                      color: "var(--c-accent)",
                       fontSize: 12,
                       fontWeight: 600,
                       fontFamily: "var(--font-body)",
@@ -957,40 +991,20 @@ export default function CohortAnalyser() {
                       gap: 5,
                     }}
                   >
-                    {copied ? (
-                      <>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <polyline points="3 7 6 10 11 4" />
-                        </svg>
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect x="4" y="1" width="9" height="11" rx="1.5" />
-                          <path d="M1 4v8.5A1.5 1.5 0 002.5 14H10" />
-                        </svg>
-                        Copy
-                      </>
-                    )}
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="4" y="1" width="9" height="11" rx="1.5" />
+                      <path d="M1 4v8.5A1.5 1.5 0 002.5 14H10" />
+                    </svg>
+                    Copy
                   </button>
                 </div>
               </Card>
@@ -1281,6 +1295,34 @@ export default function CohortAnalyser() {
                     >
                       Save this cohort
                     </div>
+                    {storageWarning && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "#92400e",
+                          background: "#fef3c7",
+                          padding: "8px 12px",
+                          borderRadius: "var(--radius-xs)",
+                          marginBottom: 10,
+                          border: "1px solid #fde68a",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="currentColor"
+                          style={{ flexShrink: 0 }}
+                        >
+                          <path d="M7 1L13 12H1L7 1Z" />
+                        </svg>
+                        {storageWarning}
+                      </div>
+                    )}
                     <div style={{ display: "flex", gap: 8 }}>
                       <input
                         ref={saveInputRef}
