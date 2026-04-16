@@ -96,6 +96,161 @@ export const ALL_POSTCODES = Object.keys(IDX)
   .map(Number)
   .sort((a, b) => a - b);
 
+// Place name search index: lowercased place name → [postcode, ...]
+export const PLACE_IDX = {};
+DATA.forEach((r) => {
+  const pl = (r[2] || "").toLowerCase();
+  if (!pl) return;
+  if (!PLACE_IDX[pl]) PLACE_IDX[pl] = [];
+  PLACE_IDX[pl].push(r[0]);
+});
+
+// All unique place names sorted
+export const ALL_PLACES = Object.keys(PLACE_IDX).sort();
+
+// Search postcodes by number or place name, returns [{pc, pl, st, z, zn}, ...]
+export function searchPostcodes(query, limit = 8) {
+  const q = query.trim();
+  if (!q) return [];
+
+  // Numeric search — match postcodes starting with digits
+  if (/^\d+$/.test(q)) {
+    return ALL_POSTCODES.filter((p) => String(p).startsWith(q))
+      .slice(0, limit)
+      .map((pc) => {
+        const d = decode(IDX[pc][0]);
+        return { pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn };
+      });
+  }
+
+  // Place name search
+  const ql = q.toLowerCase();
+  const results = [];
+  const seen = new Set();
+
+  // Exact start match first
+  for (const place of ALL_PLACES) {
+    if (results.length >= limit) break;
+    if (place.startsWith(ql)) {
+      for (const pc of PLACE_IDX[place]) {
+        if (seen.has(pc)) continue;
+        seen.add(pc);
+        const d = decode(IDX[pc][0]);
+        results.push({ pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn });
+        if (results.length >= limit) break;
+      }
+    }
+  }
+
+  // Then substring match
+  if (results.length < limit) {
+    for (const place of ALL_PLACES) {
+      if (results.length >= limit) break;
+      if (!place.startsWith(ql) && place.includes(ql)) {
+        for (const pc of PLACE_IDX[place]) {
+          if (seen.has(pc)) continue;
+          seen.add(pc);
+          const d = decode(IDX[pc][0]);
+          results.push({ pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn });
+          if (results.length >= limit) break;
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// LHD summary data for NSW LHD view
+export function getLHDSummary() {
+  const lhdMap = {};
+
+  DATA.forEach((r) => {
+    if (r[6] < 0) return;
+    const name = LHD_NAMES[r[6]];
+    if (!lhdMap[name]) {
+      lhdMap[name] = {
+        name,
+        postcodes: 0,
+        pop: 0,
+        popCount: 0,
+        indSum: 0,
+        indCount: 0,
+        irsd: Array(11).fill(0),
+        zones: { 1: 0, 2: 0, 3: 0, 4: 0 },
+      };
+    }
+    const m = lhdMap[name];
+    m.postcodes++;
+    const z = ZONE_MAP[r[3]] || 0;
+    if (z) m.zones[z]++;
+    if (r[7] > 0) {
+      m.pop += r[7];
+      m.popCount++;
+    }
+    if (r[8] > 0) {
+      m.indSum += r[8];
+      m.indCount++;
+    }
+    if (r[9] > 0) m.irsd[r[9]]++;
+  });
+
+  return Object.values(lhdMap)
+    .map((m) => ({
+      ...m,
+      avgInd: m.indCount > 0 ? +(m.indSum / m.indCount).toFixed(1) : 0,
+      bot20: (() => {
+        const b = m.irsd[1] + m.irsd[2];
+        const t = m.irsd.slice(1).reduce((a, c) => a + c, 0);
+        return t > 0 ? +((b / t) * 100).toFixed(0) : 0;
+      })(),
+      medianIrsd: (() => {
+        const vals = [];
+        m.irsd.forEach((count, dec) => {
+          if (dec > 0) for (let i = 0; i < count; i++) vals.push(dec);
+        });
+        vals.sort((a, b) => a - b);
+        return vals.length > 0 ? vals[Math.floor(vals.length / 2)] : 0;
+      })(),
+      dominantZone:
+        Object.entries(m.zones).sort((a, b) => b[1] - a[1])[0]?.[0] || "1",
+    }))
+    .sort((a, b) => b.postcodes - a.postcodes);
+}
+
+// Generate CSV from decoded records
+export function toCSV(records) {
+  const headers = [
+    "Postcode",
+    "State",
+    "Place",
+    "Zone",
+    "MMM",
+    "RA",
+    "PHN Code",
+    "PHN Name",
+    "LHD",
+    "Population",
+    "Indigenous %",
+    "IRSD Decile",
+  ];
+  const rows = records.map((d) => [
+    d.pc,
+    d.st,
+    `"${(d.pl || "").replace(/"/g, '""')}"`,
+    d.zn,
+    d.mmm,
+    d.ra,
+    d.hc,
+    `"${(d.hn || "").replace(/"/g, '""')}"`,
+    `"${(d.lhd || "").replace(/"/g, '""')}"`,
+    d.erp || "",
+    d.ip || "",
+    d.id || "",
+  ]);
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
 // IRSD color scale
 export function irsdColor(decile) {
   if (decile <= 2) return "#ef4444";

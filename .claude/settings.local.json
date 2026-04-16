@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node -e \"const d=require\\('./src/data/postcodes.json'\\); console.log\\('LHDs:', JSON.stringify\\(d.l\\)\\); console.log\\('Sample records:', JSON.stringify\\(d.d.slice\\(0,3\\)\\)\\); console.log\\('NSW records with LHD:', d.d.filter\\(r=>r[6]>=0\\).length\\); console.log\\('Total records:', d.d.length\\)\")",
+      "Bash(npx -y acorn --ecma2020 --module --jsx src/components/CohortAnalyser.jsx)"
+    ]
+  }
+}
