@@ -20,7 +20,7 @@ import {
 } from "./Shared";
 import CohortCompare from "./CohortCompare";
 
-const STORAGE_KEY = "nuaa-saved-cohorts";
+const STORAGE_KEY = "saved-cohorts";
 
 function loadSavedCohorts() {
   try {
@@ -1179,13 +1179,11 @@ export default function CohortAnalyser() {
                   </div>
                   <div style={{ padding: "0 12px 8px" }}>
                     <MiniBar
-                      data={r.irsd
-                        .slice(1)
-                        .map((v, i) => ({
-                          name: String(i + 1),
-                          value: v,
-                          color: irsdColor(i + 1),
-                        }))}
+                      data={r.irsd.slice(1).map((v, i) => ({
+                        name: String(i + 1),
+                        value: v,
+                        color: irsdColor(i + 1),
+                      }))}
                       dataKey="value"
                       nameKey="name"
                       colors={r.irsd.slice(1).map((_, i) => irsdColor(i + 1))}

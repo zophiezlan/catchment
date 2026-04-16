@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
       manifest: {
-        name: "NUAA Postcode Tool",
-        short_name: "Postcode Tool",
+        name: "Catchment",
+        short_name: "Catchment",
         description:
           "Postcode lookup and service planning tool for harm reduction work across Australia",
         theme_color: "#059669",

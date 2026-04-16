@@ -1,6 +1,6 @@
-# NUAA Postcode Tool
+# Catchment
 
-A postcode lookup and analysis dashboard for NUAA's harm reduction service planning. Built on 2,957 Australian postcodes enriched with health geography and equity data.
+A postcode lookup and analysis dashboard for harm reduction service planning. Built on 2,957 Australian postcodes enriched with health geography and equity data.
 
 ## Data sources
 

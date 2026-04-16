@@ -1,4 +1,4 @@
-/* ===== NUAA Postcode Tool — Design System ===== */
+/* ===== Catchment — Design System ===== */
 
 :root {
   /* Surfaces */
@@ -17,7 +17,7 @@
   --c-border: #e8eaed;
   --c-border2: #d1d5db;
 
-  /* Accent — NUAA green */
+  /* Accent — green */
   --c-accent: #059669;
   --c-accent-hover: #047857;
   --c-accent-light: #ecfdf5;

@@ -192,7 +192,7 @@ export default function App() {
                 lineHeight: 1.2,
               }}
             >
-              Postcode Tool
+              Catchment
             </h1>
             <div
               style={{
@@ -203,7 +203,7 @@ export default function App() {
                 lineHeight: 1.3,
               }}
             >
-              NUAA Service Planning
+              Harm Reduction Service Planning
             </div>
           </div>
         </div>
@@ -339,7 +339,7 @@ export default function App() {
             color: "var(--c-text3)",
           }}
         >
-          Built for NUAA
+          Built for Harm Reduction
         </div>
       </footer>
     </div>

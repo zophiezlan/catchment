@@ -1,6 +1,6 @@
 {
-  "name": "NUAA Postcode Tool",
-  "short_name": "Postcode Tool",
+  "name": "Catchment",
+  "short_name": "Catchment",
   "description": "Postcode lookup and service planning tool for harm reduction work across Australia",
   "start_url": "/",
   "display": "standalone",

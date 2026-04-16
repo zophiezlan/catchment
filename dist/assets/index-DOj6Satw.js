@@ -47855,13 +47855,11 @@ function Iae() {
                               S.jsx("div", {
                                 style: { padding: "0 12px 8px" },
                                 children: S.jsx(hm, {
-                                  data: p.irsd
-                                    .slice(1)
-                                    .map((g, w) => ({
-                                      name: String(w + 1),
-                                      value: g,
-                                      color: _i(w + 1),
-                                    })),
+                                  data: p.irsd.slice(1).map((g, w) => ({
+                                    name: String(w + 1),
+                                    value: g,
+                                    color: _i(w + 1),
+                                  })),
                                   dataKey: "value",
                                   nameKey: "name",
                                   colors: p.irsd
@@ -49454,7 +49452,7 @@ function Vae() {
                       color: "var(--c-text)",
                       lineHeight: 1.2,
                     },
-                    children: "Postcode Tool",
+                    children: "Catchment",
                   }),
                   S.jsx("div", {
                     style: {
@@ -49464,7 +49462,7 @@ function Vae() {
                       letterSpacing: "0.01em",
                       lineHeight: 1.3,
                     },
-                    children: "NUAA Service Planning",
+                    children: "Harm Reduction Service Planning",
                   }),
                 ],
               }),
@@ -49595,7 +49593,7 @@ function Vae() {
           }),
           S.jsx("div", {
             style: { fontSize: 11, fontWeight: 500, color: "var(--c-text3)" },
-            children: "Built for NUAA",
+            children: "Built for Harm Reduction",
           }),
         ],
       }),
