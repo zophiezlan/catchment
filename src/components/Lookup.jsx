@@ -97,6 +97,15 @@ export default function Lookup() {
   const d = res ? decode(res[0]) : null;
   const multiState = res && res.length > 1;
 
+  // NSP enrichment — lazy-loaded so it doesn't bloat this chunk
+  const [nspCounts, setNspCounts] = useState(null);
+  useEffect(() => {
+    if (!d?.pc) { setNspCounts(null); return; }
+    import("../utils/nsp").then(m => {
+      setNspCounts(m.NSP_PC[d.pc] ?? null);
+    });
+  }, [d?.pc]);
+
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
       {/* Search input */}
@@ -607,6 +616,58 @@ export default function Lookup() {
                   </div>
                 </div>
               </div>
+
+              {/* NSP services */}
+              {nspCounts && (
+                <div
+                  style={{
+                    margin: "0 24px",
+                    padding: "16px 0 20px",
+                    borderTop: "1px solid var(--c-border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "var(--c-text3)",
+                      marginBottom: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="7" cy="5" r="2" />
+                      <path d="M3 5a4 4 0 0 1 8 0c0 3-4 7-4 7S3 8 3 5z" />
+                    </svg>
+                    NSP services in this postcode
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {nspCounts.primary > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "#ecfdf5", border: "1px solid rgba(5,150,105,0.2)" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "#059669", lineHeight: 1 }}>{nspCounts.primary}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#065f46", marginTop: 3 }}>Primary NSP</span>
+                      </div>
+                    )}
+                    {nspCounts.secondary > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "#eff6ff", border: "1px solid rgba(59,130,246,0.2)" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "#3b82f6", lineHeight: 1 }}>{nspCounts.secondary}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#1e40af", marginTop: 3 }}>Secondary</span>
+                      </div>
+                    )}
+                    {nspCounts.pharmacy > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "#fffbeb", border: "1px solid rgba(217,119,6,0.2)" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "#d97706", lineHeight: 1 }}>{nspCounts.pharmacy}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e", marginTop: 3 }}>Pharmacies</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         ) : !q ? (

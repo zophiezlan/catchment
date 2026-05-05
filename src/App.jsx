@@ -16,6 +16,7 @@ const Lookup = lazy(() => import("./components/Lookup"));
 const CohortAnalyser = lazy(() => import("./components/CohortAnalyser"));
 const Explorer = lazy(() => import("./components/Explorer"));
 const LHDView = lazy(() => import("./components/LHDView"));
+const NSPView = lazy(() => import("./components/NSPView"));
 
 const TABS = [
   {
@@ -119,6 +120,26 @@ const TABS = [
       </svg>
     ),
   },
+  {
+    id: "nsp",
+    label: "NSP Outlets",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="8" cy="6" r="2.5" />
+        <path d="M8 8.5v5.5" />
+        <path d="M3 6a5 5 0 0 1 10 0c0 3.5-5 7.5-5 7.5S3 9.5 3 6z" />
+      </svg>
+    ),
+  },
 ];
 
 const TAB_IDS = new Set(TABS.map((t) => t.id));
@@ -129,6 +150,7 @@ const TAB_COMPONENTS = {
   cohort: CohortAnalyser,
   explorer: Explorer,
   lhd: LHDView,
+  nsp: NSPView,
 };
 
 const tabVariants = {
