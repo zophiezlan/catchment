@@ -1,4 +1,6 @@
 import RAW from "../data/postcodes.json";
+import LOCALITIES from "../data/localities.json";
+import { buildTrigramIndex, fuzzySearch } from "./fuzzy.js";
 
 export const STATES = RAW.s;
 export const PHN_CODES = RAW.h;
@@ -97,6 +99,7 @@ export const ALL_POSTCODES = Object.keys(IDX)
   .sort((a, b) => a - b);
 
 // Place name search index: lowercased place name → [postcode, ...]
+// Enriched with all localities from AusPost PC001
 export const PLACE_IDX = {};
 DATA.forEach((r) => {
   const pl = (r[2] || "").toLowerCase();
@@ -105,10 +108,34 @@ DATA.forEach((r) => {
   PLACE_IDX[pl].push(r[0]);
 });
 
+// Add all localities from the full AusPost PC001 dataset
+for (const [pc, names] of Object.entries(LOCALITIES)) {
+  const pcNum = Number(pc);
+  for (const name of names) {
+    const nl = name.toLowerCase();
+    if (!PLACE_IDX[nl]) PLACE_IDX[nl] = [];
+    if (!PLACE_IDX[nl].includes(pcNum)) {
+      PLACE_IDX[nl].push(pcNum);
+    }
+  }
+}
+
 // All unique place names sorted
 export const ALL_PLACES = Object.keys(PLACE_IDX).sort();
 
-// Search postcodes by number or place name, returns [{pc, pl, st, z, zn}, ...]
+// Precomputed trigram index for fuzzy search
+const TRIGRAM_IDX = buildTrigramIndex(ALL_PLACES);
+
+/**
+ * Get all locality names for a postcode (from AusPost PC001).
+ * @param {number} pc - postcode
+ * @returns {string[]} array of locality names, or empty array
+ */
+export function getLocalities(pc) {
+  return LOCALITIES[pc] || [];
+}
+
+// Search postcodes by number or place name, returns [{pc, pl, st, z, zn, matchedLocality?}, ...]
 export function searchPostcodes(query, limit = 8) {
   const q = query.trim();
   if (!q) return [];
@@ -128,32 +155,51 @@ export function searchPostcodes(query, limit = 8) {
   const results = [];
   const seen = new Set();
 
-  // Exact start match first
+  const addResult = (pc, matchedPlace) => {
+    if (seen.has(pc)) return false;
+    seen.add(pc);
+    const d = decode(IDX[pc][0]);
+    const primary = d.pl.toLowerCase();
+    // Include matchedLocality when the match came from a different name than the primary
+    const matchedLocality = matchedPlace && matchedPlace !== primary
+      ? matchedPlace.replace(/\b\w/g, c => c.toUpperCase())
+      : undefined;
+    results.push({ pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn, matchedLocality });
+    return true;
+  };
+
+  // Phase 1: Exact prefix match
   for (const place of ALL_PLACES) {
     if (results.length >= limit) break;
     if (place.startsWith(ql)) {
       for (const pc of PLACE_IDX[place]) {
-        if (seen.has(pc)) continue;
-        seen.add(pc);
-        const d = decode(IDX[pc][0]);
-        results.push({ pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn });
+        addResult(pc, place);
         if (results.length >= limit) break;
       }
     }
   }
 
-  // Then substring match
+  // Phase 2: Substring match
   if (results.length < limit) {
     for (const place of ALL_PLACES) {
       if (results.length >= limit) break;
       if (!place.startsWith(ql) && place.includes(ql)) {
         for (const pc of PLACE_IDX[place]) {
-          if (seen.has(pc)) continue;
-          seen.add(pc);
-          const d = decode(IDX[pc][0]);
-          results.push({ pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn });
+          addResult(pc, place);
           if (results.length >= limit) break;
         }
+      }
+    }
+  }
+
+  // Phase 3: Fuzzy match (only if previous phases found fewer than limit results)
+  if (results.length < limit && ql.length >= 3) {
+    const fuzzyMatches = fuzzySearch(ql, TRIGRAM_IDX, limit * 2);
+    for (const { name } of fuzzyMatches) {
+      if (results.length >= limit) break;
+      for (const pc of PLACE_IDX[name]) {
+        addResult(pc, name);
+        if (results.length >= limit) break;
       }
     }
   }
