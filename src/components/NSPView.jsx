@@ -411,7 +411,7 @@ function GapView() {
           {/* Column headers */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "72px 1fr 90px 180px 70px 56px 60px 72px",
+            gridTemplateColumns: "72px 1fr 90px 150px 70px 56px 60px 70px 72px",
             gap: 8, padding: "6px 12px",
             fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em",
             color: "var(--c-text3)", fontFamily: "var(--font-body)",
@@ -422,15 +422,19 @@ function GapView() {
             <span style={{ textAlign: "right" }}>Pop</span>
             <span style={{ textAlign: "right" }}>IRSD</span>
             <span style={{ textAlign: "right" }}>Indig%</span>
+            <span style={{ textAlign: "right" }}>Dist</span>
             <span style={{ textAlign: "center" }}>Need</span>
           </div>
 
           {paged.map(p => {
             const tier = getTier(p.score);
+            const distColor = p.distKm != null
+              ? (p.distKm > 100 ? "#ef4444" : p.distKm > 50 ? "#f97316" : p.distKm > 20 ? "#d97706" : "#059669")
+              : "var(--c-text3)";
             return (
               <div key={p.pc} style={{
                 display: "grid",
-                gridTemplateColumns: "72px 1fr 90px 180px 70px 56px 60px 72px",
+                gridTemplateColumns: "72px 1fr 90px 150px 70px 56px 60px 70px 72px",
                 gap: 8, padding: "7px 12px",
                 fontSize: 12, alignItems: "center",
                 borderBottom: "1px solid var(--c-border)",
@@ -438,6 +442,7 @@ function GapView() {
               }}
                 onMouseEnter={e => e.currentTarget.style.background = "var(--c-bg2)"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                title={p.nearestOutlet ? `Nearest outlet: ${p.nearestOutlet}` : undefined}
               >
                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--c-text)", fontSize: 13 }}>
                   {p.pc}
@@ -467,6 +472,12 @@ function GapView() {
                   color: p.ip >= 10 ? "#059669" : p.ip > 0 ? "var(--c-text2)" : "var(--c-text3)",
                 }}>
                   {p.ip > 0 ? `${p.ip}%` : "—"}
+                </span>
+                <span style={{
+                  textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 11,
+                  fontWeight: 600, color: distColor,
+                }}>
+                  {p.distKm != null ? `${p.distKm} km` : "—"}
                 </span>
                 <div style={{ display: "flex", justifyContent: "center" }}>
                   {tier && (
@@ -508,7 +519,7 @@ function GapView() {
           )}
 
           <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 12, lineHeight: 1.5 }}>
-            Need score: IRSD ≤2 (+3), ≤4 (+2), ≤6 (+1) · Indigenous ≥10% (+2), ≥3% (+1) · MMM ≥6 (+2), ≥4 (+1). Based on exact postcode match.
+            Need score: IRSD ≤2 (+3), ≤4 (+2), ≤6 (+1) · Indigenous ≥10% (+2), ≥3% (+1) · MMM ≥6 (+2), ≥4 (+1) · Distance &gt;100km (+2), &gt;50km (+1). Hover row for nearest outlet name.
           </div>
         </>
       )}

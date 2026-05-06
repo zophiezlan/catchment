@@ -1,5 +1,7 @@
 import RAW from "../data/nsp.json";
+import CENTROIDS from "../data/postcode-centroids.json";
 import { DATA, STATES, LHD_NAMES, ZONE_MAP, ZONE_NAMES } from "./data.js";
+import { nearestOutlet } from "./geo.js";
 
 export const NSP_LHDS      = RAW.lhds;
 export const NSP_PRIMARY    = RAW.primary;
@@ -53,8 +55,21 @@ function needScore(irsd, ip, mmm) {
   return s;
 }
 
+/**
+ * Distance-aware need score (0–9): IRSD + Indigenous% + MMM + distance
+ * Extends the base score with distance-to-nearest-outlet weighting.
+ */
+function needScoreWithDistance(irsd, ip, mmm, distanceKm) {
+  let s = needScore(irsd, ip, mmm);
+  if (distanceKm != null) {
+    if (distanceKm > 100) s += 2;
+    else if (distanceKm > 50) s += 1;
+  }
+  return s;
+}
+
 export const NEED_TIERS = [
-  { min: 5, label: "Critical", color: "#ef4444", bg: "#fef2f2", text: "#991b1b", border: "rgba(239,68,68,0.3)" },
+  { min: 6, label: "Critical", color: "#ef4444", bg: "#fef2f2", text: "#991b1b", border: "rgba(239,68,68,0.3)" },
   { min: 4, label: "High",     color: "#f97316", bg: "#fff7ed", text: "#9a3412", border: "rgba(249,115,22,0.3)" },
   { min: 2, label: "Medium",   color: "#d97706", bg: "#fffbeb", text: "#92400e", border: "rgba(217,119,6,0.3)" },
   { min: 1, label: "Watch",    color: "#a3a3a3", bg: "var(--c-bg3)", text: "var(--c-text3)", border: "var(--c-border)" },
@@ -62,6 +77,41 @@ export const NEED_TIERS = [
 
 export function getTier(score) {
   return NEED_TIERS.find(t => score >= t.min) ?? null;
+}
+
+// ── Nearest NSP lookup ───────────────────────────────────────────────────────
+
+// Cache for nearest outlet per postcode
+const _nearestCache = {};
+
+/**
+ * Get the nearest NSP outlet for a given postcode.
+ * Returns { outlet, distanceKm, type } or null if no centroid data available.
+ */
+export function getNearestNSP(pc) {
+  if (_nearestCache[pc] !== undefined) return _nearestCache[pc];
+  const centroid = CENTROIDS[pc];
+  if (!centroid) {
+    _nearestCache[pc] = null;
+    return null;
+  }
+  const result = nearestOutlet(centroid[0], centroid[1], NSP_ALL);
+  _nearestCache[pc] = result;
+  return result;
+}
+
+/**
+ * Get the nearest PRIMARY NSP outlet for a given postcode.
+ */
+export function getNearestPrimaryNSP(pc) {
+  const centroid = CENTROIDS[pc];
+  if (!centroid) return null;
+  return nearestOutlet(centroid[0], centroid[1], NSP_PRIMARY);
+}
+
+/** Check if a postcode has centroid data available */
+export function hasCentroid(pc) {
+  return !!CENTROIDS[pc];
 }
 
 export function getGapAnalysis() {
@@ -88,7 +138,11 @@ export function getGapAnalysis() {
     }
 
     if (!covered) {
-      const score = needScore(r[9] || 0, r[8] || 0, r[3] || 0);
+      // Calculate distance to nearest outlet if centroid available
+      const nearest = getNearestNSP(pc);
+      const distKm = nearest ? nearest.distanceKm : null;
+      const score = needScoreWithDistance(r[9] || 0, r[8] || 0, r[3] || 0, distKm);
+
       if (score >= 1) {
         uncovered.push({
           pc,
@@ -100,6 +154,8 @@ export function getGapAnalysis() {
           mmm: r[3] || 0,
           zn:  ZONE_NAMES[ZONE_MAP[r[3]] || 0] || "",
           score,
+          distKm,
+          nearestOutlet: nearest?.outlet?.n || null,
         });
         if (score >= 4) summary.highNeedUncovered++;
       }

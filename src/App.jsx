@@ -189,6 +189,8 @@ function TabFallback() {
 
 function getInitialTab() {
   const hash = window.location.hash.slice(1);
+  // Support cohort share links: #cohort/2000,2010,...
+  if (hash.startsWith("cohort/")) return "cohort";
   return TAB_IDS.has(hash) ? hash : "overview";
 }
 

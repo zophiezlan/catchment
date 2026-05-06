@@ -17,6 +17,7 @@ import {
   PLACE_IDX,
   ALL_PLACES,
   searchPostcodes,
+  getLocalities,
   getLHDSummary,
   toCSV,
   irsdColor,
@@ -235,6 +236,85 @@ describe("irsdColor", () => {
   it("returns green for decile 9-10", () => {
     expect(irsdColor(9)).toBe("#059669");
     expect(irsdColor(10)).toBe("#059669");
+  });
+});
+
+describe("localities integration", () => {
+  it("PLACE_IDX contains locality names from AusPost PC001", () => {
+    // Surry Hills is a locality of 2010 but not the primary place name
+    expect(PLACE_IDX["surry hills"]).toBeDefined();
+    expect(PLACE_IDX["surry hills"]).toContain(2010);
+  });
+
+  it("PLACE_IDX contains the primary place names too", () => {
+    expect(PLACE_IDX["barangaroo"]).toBeDefined();
+    expect(PLACE_IDX["barangaroo"]).toContain(2000);
+  });
+
+  it("ALL_PLACES includes locality names", () => {
+    expect(ALL_PLACES).toContain("surry hills");
+    expect(ALL_PLACES).toContain("haymarket");
+    expect(ALL_PLACES).toContain("the rocks");
+  });
+
+  it("getLocalities returns all suburbs for a multi-suburb postcode", () => {
+    const locs = getLocalities(2000);
+    expect(locs.length).toBeGreaterThan(1);
+    // Should include Sydney, Haymarket, The Rocks etc
+    const lower = locs.map(l => l.toLowerCase());
+    expect(lower).toContain("sydney");
+    expect(lower).toContain("haymarket");
+  });
+
+  it("getLocalities returns empty array for unknown postcode", () => {
+    expect(getLocalities(99999)).toEqual([]);
+  });
+});
+
+describe("searchPostcodes with localities", () => {
+  it("finds postcode by a non-primary locality name", () => {
+    const res = searchPostcodes("surry hills", 5);
+    expect(res.length).toBeGreaterThan(0);
+    expect(res[0].pc).toBe(2010);
+  });
+
+  it("finds postcode 2000 when searching for haymarket", () => {
+    const res = searchPostcodes("haymarket", 5);
+    expect(res.some(r => r.pc === 2000)).toBe(true);
+  });
+
+  it("returns matchedLocality when match differs from primary name", () => {
+    const res = searchPostcodes("surry hills", 5);
+    const hit = res.find(r => r.pc === 2010);
+    // Primary name is Darlinghurst, so matchedLocality should show Surry Hills
+    expect(hit).toBeDefined();
+    expect(hit.matchedLocality).toBeDefined();
+  });
+
+  it("does not return matchedLocality when primary name matches", () => {
+    const res = searchPostcodes("darlinghurst", 5);
+    const hit = res.find(r => r.pc === 2010);
+    expect(hit).toBeDefined();
+    expect(hit.matchedLocality).toBeUndefined();
+  });
+});
+
+describe("fuzzy search integration", () => {
+  it("finds results for common misspellings", () => {
+    // parmatta doesn't substring-match anything, so fuzzy phase kicks in
+    const res = searchPostcodes("parmatta", 8);
+    expect(res.length).toBeGreaterThan(0);
+  });
+
+  it("finds results for melborn", () => {
+    const res = searchPostcodes("melborn", 8);
+    expect(res.length).toBeGreaterThan(0);
+  });
+
+  it("returns results even for gibberish-like short queries", () => {
+    // "xyzq" should return nothing — no match, not even fuzzy
+    const res = searchPostcodes("xyzqwk", 5);
+    expect(res.length).toBe(0);
   });
 });
 

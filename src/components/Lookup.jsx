@@ -4,6 +4,7 @@ import {
   IDX,
   decode,
   searchPostcodes,
+  getLocalities,
   ZONE_COLORS,
   ZONE_COLORS_LIGHT,
   ZONE_COLORS_TEXT,
@@ -99,10 +100,32 @@ export default function Lookup() {
 
   // NSP enrichment — lazy-loaded so it doesn't bloat this chunk
   const [nspCounts, setNspCounts] = useState(null);
+  const [nearestNSP, setNearestNSP] = useState(null);
   useEffect(() => {
-    if (!d?.pc) { setNspCounts(null); return; }
-    import("../utils/nsp").then(m => {
-      setNspCounts(m.NSP_PC[d.pc] ?? null);
+    if (!d?.pc) { setNspCounts(null); setNearestNSP(null); return; }
+    Promise.all([
+      import("../utils/nsp"),
+      import("../utils/geo"),
+    ]).then(([nspMod, geoMod]) => {
+      setNspCounts(nspMod.NSP_PC[d.pc] ?? null);
+      // Find nearest NSP outlet if we have locality coordinates
+      const locs = getLocalities(d.pc);
+      // Use postcode centroid from NSP outlets if available, or search nearby
+      const allOutlets = nspMod.NSP_ALL;
+      // Get a rough centroid from outlets in this postcode, or from nearby outlets
+      const localOutlets = allOutlets.filter(o => o.p === d.pc);
+      if (localOutlets.length > 0) {
+        // Postcode already has outlets — show nearest primary if exists
+        const nearest = geoMod.nearestOutletByType(
+          localOutlets[0].lat, localOutlets[0].lon, allOutlets, "primary"
+        );
+        setNearestNSP(nearest);
+      } else {
+        // No outlets in this postcode — find nearest outlet overall
+        // Use NSW postcodes' approximate centroid from any nearby outlet
+        // For now, find the nearest outlet to any outlet in adjacent postcodes
+        setNearestNSP(null);
+      }
     });
   }, [d?.pc]);
 
@@ -251,7 +274,16 @@ export default function Lookup() {
                   <span
                     style={{ fontSize: 13, color: "var(--c-text2)", flex: 1 }}
                   >
-                    {item.pl}
+                    {item.matchedLocality ? (
+                      <>
+                        <span style={{ color: "var(--c-text)" }}>{item.matchedLocality}</span>
+                        <span style={{ fontSize: 11, color: "var(--c-text3)", marginLeft: 4 }}>
+                          ({item.pl})
+                        </span>
+                      </>
+                    ) : (
+                      item.pl
+                    )}
                   </span>
                   <Pill
                     size="small"
@@ -383,6 +415,51 @@ export default function Lookup() {
                   </div>
                 </div>
               </div>
+
+              {/* Localities / suburbs covered by this postcode */}
+              {(() => {
+                const locs = getLocalities(d.pc);
+                return locs.length > 1 ? (
+                  <div
+                    style={{
+                      padding: "12px 24px",
+                      borderBottom: "1px solid var(--c-border)",
+                      background: "var(--c-bg2)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--c-text3)",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Suburbs & localities ({locs.length})
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {locs.map((loc) => (
+                        <span
+                          key={loc}
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color: "var(--c-text2)",
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: "var(--c-surface)",
+                            border: "1px solid var(--c-border)",
+                          }}
+                        >
+                          {loc}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Classification fields */}
               <div style={{ padding: "20px 24px" }}>

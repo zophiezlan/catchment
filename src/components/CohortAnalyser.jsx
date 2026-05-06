@@ -1,14 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toPng } from "html-to-image";
+import { ZONE_NAMES, ZONE_COLORS, RA_LABELS, irsdColor } from "../utils/data";
 import {
-  PIDX,
-  decode,
-  ZONE_NAMES,
-  ZONE_COLORS,
-  RA_LABELS,
-  irsdColor,
-} from "../utils/data";
+  analyseCohort,
+  generateSummary,
+  loadSavedCohorts,
+  persistCohorts,
+  extractPostcodes,
+} from "../utils/cohort";
 import {
   MetricCard,
   SectionLabel,
@@ -20,80 +20,7 @@ import {
 } from "./Shared";
 import CohortCompare from "./CohortCompare";
 import { useToast } from "./Toast";
-
-const STORAGE_KEY = "saved-cohorts";
-
-function loadSavedCohorts() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function getStorageUsage() {
-  try {
-    let total = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      total += (localStorage.getItem(key) || "").length;
-    }
-    // Approximate bytes (UTF-16 = 2 bytes per char)
-    return { usedKB: Math.round((total * 2) / 1024), limitKB: 5120 };
-  } catch {
-    return { usedKB: 0, limitKB: 5120 };
-  }
-}
-
-function persistCohorts(cohorts) {
-  try {
-    const data = JSON.stringify(cohorts);
-    const sizeKB = Math.round((data.length * 2) / 1024);
-    const { usedKB, limitKB } = getStorageUsage();
-    if (usedKB + sizeKB > limitKB * 0.9) {
-      console.warn("LocalStorage near capacity — cohort not saved");
-      return false;
-    }
-    localStorage.setItem(STORAGE_KEY, data);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function generateSummary(r) {
-  const zoneParts = [1, 2, 3, 4]
-    .filter((z) => r.zones[z] > 0)
-    .map(
-      (z) =>
-        `${((r.zones[z] / r.total) * 100).toFixed(0)}% ${ZONE_NAMES[z].toLowerCase()}`,
-    );
-
-  const phnCount = Object.keys(r.phns).length;
-  const lhdCount = Object.keys(r.lhds).length;
-
-  let text = `Analysis of ${r.matchCount} unique service contact postcode${r.matchCount !== 1 ? "s" : ""}`;
-  text += ` shows ${zoneParts.join(", ")}`;
-  text += `, spanning ${phnCount} PHN region${phnCount !== 1 ? "s" : ""}`;
-  if (lhdCount > 0)
-    text += ` and ${lhdCount} NSW Local Health District${lhdCount !== 1 ? "s" : ""}`;
-  text += ".";
-
-  if (r.withIrsd > 0) {
-    text += ` ${r.bot20pct}% of postcodes with IRSD data fall in the most disadvantaged quintile (decile 1–2).`;
-  }
-
-  if (Number(r.avgInd) > 0) {
-    text += ` Average Indigenous population across matched postcodes is ${r.avgInd}%.`;
-  }
-
-  if (r.missed.length > 0) {
-    text += ` ${r.missed.length} postcode${r.missed.length !== 1 ? "s were" : " was"} not matched.`;
-  }
-
-  return text;
-}
+import { isCohortHash, decodeCohort, buildShareUrl } from "../utils/cohortUrl";
 
 export default function CohortAnalyser() {
   const toast = useToast();
@@ -116,7 +43,33 @@ export default function CohortAnalyser() {
     if (showSaveDialog && saveInputRef.current) saveInputRef.current.focus();
   }, [showSaveDialog]);
 
+  // Auto-load cohort from share URL on mount
+  const urlLoadRef = useRef(false);
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (isCohortHash(hash)) {
+      const postcodes = decodeCohort(hash);
+      if (postcodes.length > 0) {
+        const text = postcodes.join("\n");
+        setRaw(text);
+        urlLoadRef.current = true;
+        // Clear the cohort-specific hash, keep on cohort tab
+        window.history.replaceState(null, "", "#cohort");
+      }
+    }
+  }, []);
+
   const [storageWarning, setStorageWarning] = useState("");
+
+  // Auto-analyse when loaded from URL
+  useEffect(() => {
+    if (urlLoadRef.current && raw) {
+      urlLoadRef.current = false;
+      // Trigger analysis in next tick after raw state is set
+      const timer = setTimeout(() => analyse(), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [raw, analyse]);
 
   const saveCohort = useCallback(
     (name) => {
@@ -164,67 +117,7 @@ export default function CohortAnalyser() {
   }, []);
 
   const analyse = useCallback(() => {
-    const pcs = raw.match(/\d{3,4}/g) || [];
-    const unique = [...new Set(pcs.map(Number))];
-    const matched = [];
-    const missed = [];
-
-    unique.forEach((pc) => {
-      if (PIDX[pc]) matched.push(decode(PIDX[pc]));
-      else missed.push(pc);
-    });
-
-    if (!matched.length) {
-      setResults({ empty: true });
-      return;
-    }
-
-    const zones = { 1: 0, 2: 0, 3: 0, 4: 0 };
-    const ras = {};
-    const phns = {};
-    const lhds = {};
-    const states = {};
-    const irsd = Array(11).fill(0);
-    let popTot = 0,
-      indW = 0,
-      indPop = 0;
-
-    matched.forEach((d) => {
-      zones[d.z] = (zones[d.z] || 0) + 1;
-      ras[d.ra] = (ras[d.ra] || 0) + 1;
-      if (d.hn) phns[d.hn] = (phns[d.hn] || 0) + 1;
-      if (d.lhd) lhds[d.lhd] = (lhds[d.lhd] || 0) + 1;
-      states[d.st] = (states[d.st] || 0) + 1;
-      if (d.id > 0) irsd[d.id]++;
-      if (d.erp > 0) popTot += d.erp;
-      if (d.ip > 0) {
-        indW += d.ip;
-        indPop++;
-      }
-    });
-
-    const bot20 = irsd.slice(1, 3).reduce((a, b) => a + b, 0);
-    const withIrsd = irsd.slice(1).reduce((a, b) => a + b, 0);
-
-    setResults({
-      inputCount: pcs.length,
-      uniqueCount: unique.length,
-      matchCount: matched.length,
-      missed,
-      zones,
-      ras,
-      phns,
-      lhds,
-      states,
-      irsd,
-      popTot,
-      avgInd: indPop > 0 ? (indW / indPop).toFixed(1) : "0",
-      indPop,
-      bot20,
-      withIrsd,
-      bot20pct: withIrsd > 0 ? ((bot20 / withIrsd) * 100).toFixed(0) : "0",
-      total: matched.length,
-    });
+    setResults(analyseCohort(raw));
   }, [raw]);
 
   const handleCopy = useCallback(async () => {
@@ -243,6 +136,25 @@ export default function CohortAnalyser() {
       toast("Summary copied to clipboard");
     }
   }, [results, toast]);
+
+  const handleShare = useCallback(async () => {
+    if (!results || results.empty) return;
+    const unique = extractPostcodes(raw);
+    const url = buildShareUrl(unique);
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("Share link copied to clipboard");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      toast("Share link copied to clipboard");
+    }
+  }, [results, raw, toast]);
 
   const handleExportPNG = useCallback(async () => {
     if (!resultsRef.current || exporting) return;
@@ -1500,6 +1412,39 @@ export default function CohortAnalyser() {
                   <path d="M3 5V1.5a.5.5 0 01.5-.5h7a.5.5 0 01.5.5V5" />
                 </svg>
                 Print / PDF
+              </button>
+              <button
+                onClick={handleShare}
+                style={{
+                  padding: "9px 16px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid rgba(59, 130, 246, 0.25)",
+                  background: "rgba(59, 130, 246, 0.08)",
+                  color: "#3b82f6",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: "var(--font-body)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="10.5" cy="2.5" r="1.5" />
+                  <circle cx="3.5" cy="7" r="1.5" />
+                  <circle cx="10.5" cy="11.5" r="1.5" />
+                  <path d="M5 6l4-2.5M5 8l4 2.5" />
+                </svg>
+                Share link
               </button>
             </div>
           </motion.div>
