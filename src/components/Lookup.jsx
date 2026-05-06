@@ -101,30 +101,29 @@ export default function Lookup() {
   // NSP enrichment — lazy-loaded so it doesn't bloat this chunk
   const [nspCounts, setNspCounts] = useState(null);
   const [nearestNSP, setNearestNSP] = useState(null);
+  const [suburbDistances, setSuburbDistances] = useState(null);
   useEffect(() => {
-    if (!d?.pc) { setNspCounts(null); setNearestNSP(null); return; }
+    if (!d?.pc) { setNspCounts(null); setNearestNSP(null); setSuburbDistances(null); return; }
     Promise.all([
       import("../utils/nsp"),
+      import("../data/suburb-centroids.json"),
       import("../utils/geo"),
-    ]).then(([nspMod, geoMod]) => {
+    ]).then(([nspMod, salMod, geoMod]) => {
       setNspCounts(nspMod.NSP_PC[d.pc] ?? null);
-      // Find nearest NSP outlet if we have locality coordinates
-      const locs = getLocalities(d.pc);
-      // Use postcode centroid from NSP outlets if available, or search nearby
-      const allOutlets = nspMod.NSP_ALL;
-      // Get a rough centroid from outlets in this postcode, or from nearby outlets
-      const localOutlets = allOutlets.filter(o => o.p === d.pc);
-      if (localOutlets.length > 0) {
-        // Postcode already has outlets — show nearest primary if exists
-        const nearest = geoMod.nearestOutletByType(
-          localOutlets[0].lat, localOutlets[0].lon, allOutlets, "primary"
-        );
-        setNearestNSP(nearest);
+      const nearest = nspMod.getNearestPrimaryNSP(d.pc);
+      setNearestNSP(nearest);
+      // Per-suburb distances to nearest NSP (any type)
+      const salCentroids = salMod.default[d.pc];
+      if (salCentroids) {
+        const all = nspMod.NSP_ALL;
+        const dists = salCentroids.map(c => {
+          if (!c) return null;
+          const r = geoMod.nearestOutlet(c[0], c[1], all);
+          return r ? r.distanceKm : null;
+        });
+        setSuburbDistances(dists);
       } else {
-        // No outlets in this postcode — find nearest outlet overall
-        // Use NSW postcodes' approximate centroid from any nearby outlet
-        // For now, find the nearest outlet to any outlet in adjacent postcodes
-        setNearestNSP(null);
+        setSuburbDistances(null);
       }
     });
   }, [d?.pc]);
@@ -419,6 +418,7 @@ export default function Lookup() {
               {/* Localities / suburbs covered by this postcode */}
               {(() => {
                 const locs = getLocalities(d.pc);
+                const hasDists = suburbDistances && suburbDistances.some(d => d != null);
                 return locs.length > 1 ? (
                   <div
                     style={{
@@ -440,22 +440,42 @@ export default function Lookup() {
                       Suburbs & localities ({locs.length})
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {locs.map((loc) => (
-                        <span
-                          key={loc}
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 500,
-                            color: "var(--c-text2)",
-                            padding: "2px 8px",
-                            borderRadius: 6,
-                            background: "var(--c-surface)",
-                            border: "1px solid var(--c-border)",
-                          }}
-                        >
-                          {loc}
-                        </span>
-                      ))}
+                      {locs.map((loc, i) => {
+                        const dist = hasDists ? suburbDistances[i] : null;
+                        const distColor = dist != null
+                          ? dist > 50 ? "#ef4444" : dist > 20 ? "#d97706" : "#059669"
+                          : null;
+                        return (
+                          <span
+                            key={loc}
+                            title={dist != null ? `${dist} km to nearest NSP outlet` : undefined}
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: "var(--c-text2)",
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              background: "var(--c-surface)",
+                              border: "1px solid var(--c-border)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                            }}
+                          >
+                            {loc}
+                            {dist != null && (
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: distColor,
+                                whiteSpace: "nowrap",
+                              }}>
+                                {dist < 1 ? "<1" : dist} km
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : null;
@@ -694,7 +714,7 @@ export default function Lookup() {
                 </div>
               </div>
 
-              {/* NSP services */}
+              {/* NSP services in this postcode */}
               {nspCounts && (
                 <div
                   style={{
@@ -743,6 +763,85 @@ export default function Lookup() {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Nearest primary NSP — shown for NSW postcodes */}
+              {nearestNSP && (
+                <div
+                  style={{
+                    margin: "0 24px",
+                    padding: "14px 0 18px",
+                    borderTop: "1px solid var(--c-border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "var(--c-text3)",
+                      marginBottom: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 7h12M9 3l4 4-4 4" />
+                    </svg>
+                    Nearest primary NSP
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 14px",
+                      borderRadius: "var(--radius-sm)",
+                      background: nearestNSP.distanceKm > 50 ? "#fef2f2" : nearestNSP.distanceKm > 20 ? "#fffbeb" : "#ecfdf5",
+                      border: `1px solid ${nearestNSP.distanceKm > 50 ? "rgba(239,68,68,0.2)" : nearestNSP.distanceKm > 20 ? "rgba(217,119,6,0.2)" : "rgba(5,150,105,0.2)"}`,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 13, fontWeight: 600,
+                        color: "var(--c-text)", lineHeight: 1.3,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {nearestNSP.outlet.n}
+                      </div>
+                      {nearestNSP.outlet.s && (
+                        <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 2 }}>
+                          {nearestNSP.outlet.s}{nearestNSP.outlet.p ? ` ${nearestNSP.outlet.p}` : ""}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{
+                      fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700,
+                      color: nearestNSP.distanceKm > 50 ? "#ef4444" : nearestNSP.distanceKm > 20 ? "#d97706" : "#059669",
+                      whiteSpace: "nowrap",
+                    }}>
+                      {nearestNSP.distanceKm < 1
+                        ? "< 1 km"
+                        : `${nearestNSP.distanceKm} km`}
+                    </div>
+                  </div>
+                  {nearestNSP.distanceKm > 50 && (
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      fontSize: 11, fontWeight: 600, color: "#991b1b",
+                      marginTop: 6, padding: "3px 8px", borderRadius: 6,
+                      background: "#fef2f2", border: "1px solid rgba(239,68,68,0.2)",
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M6 1L11 10H1L6 1Z" />
+                      </svg>
+                      Service desert — over 50 km to nearest primary NSP
+                    </div>
+                  )}
                 </div>
               )}
             </div>
