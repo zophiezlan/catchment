@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.fallow.tools/schema/fallowrc.json",
+  "ignoreExportsUsedInFile": true,
+  "ignoreExports": [
+    {
+      "file": "src/utils/nsp.js",
+      "exports": ["getNearestPrimaryNSP"],
+      "reason": "consumed via dynamic import() in Lookup.jsx — not visible to static analysis"
+    }
+  ]
+}

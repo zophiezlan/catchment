@@ -135,7 +135,7 @@ export function loadSavedCohorts() {
  * Get localStorage usage approximation.
  * @returns {{ usedKB: number, limitKB: number }}
  */
-export function getStorageUsage() {
+function getStorageUsage() {
   try {
     let total = 0;
     for (let i = 0; i < localStorage.length; i++) {

@@ -109,13 +109,14 @@ export default function Lookup() {
       import("../data/suburb-centroids.json"),
       import("../utils/geo"),
     ]).then(([nspMod, salMod, geoMod]) => {
-      setNspCounts(nspMod.NSP_PC[d.pc] ?? null);
-      const nearest = nspMod.getNearestPrimaryNSP(d.pc);
+      const { NSP_PC, getNearestPrimaryNSP, NSP_ALL } = nspMod;
+      setNspCounts(NSP_PC[d.pc] ?? null);
+      const nearest = getNearestPrimaryNSP(d.pc);
       setNearestNSP(nearest);
       // Per-suburb distances to nearest NSP (any type)
       const salCentroids = salMod.default[d.pc];
       if (salCentroids) {
-        const all = nspMod.NSP_ALL;
+        const all = NSP_ALL;
         const dists = salCentroids.map(c => {
           if (!c) return null;
           const r = geoMod.nearestOutlet(c[0], c[1], all);
