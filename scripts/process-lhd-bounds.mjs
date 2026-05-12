@@ -1,70 +1,13 @@
 import { readFileSync, writeFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { csv2obj } from "./csv-utils.mjs";
+import { extractRings } from "./wkt-utils.mjs";
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, "..");
 const DATA_DIR = resolve(ROOT, "NSW Needle and Syringe Program (NSP) outlets.local");
 const OUT = resolve(ROOT, "src/data/lhd-geo.json");
-
-// ── CSV parser ────────────────────────────────────────────────────────────────
-function parseCSV(text) {
-  const src = text.replace(/^﻿/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const rows = [];
-  let row = [], field = "", inQ = false;
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i];
-    if (inQ) {
-      if (c === '"' && src[i + 1] === '"') { field += '"'; i++; }
-      else if (c === '"') inQ = false;
-      else field += c;
-    } else {
-      if (c === '"') inQ = true;
-      else if (c === ',') { row.push(field); field = ""; }
-      else if (c === '\n') {
-        row.push(field); field = "";
-        if (row.some(f => f)) rows.push(row);
-        row = [];
-      } else field += c;
-    }
-  }
-  if (row.length) { row.push(field); if (row.some(f => f)) rows.push(row); }
-  return rows;
-}
-
-function csv2obj(text) {
-  const [headers, ...data] = parseCSV(text);
-  const keys = headers.map(h => h.trim());
-  return data.map(r => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? "").trim()])));
-}
-
-// ── Extract coordinate rings from WKT polygon ─────────────────────────────────
-// Detects parenthesised groups whose first non-space character is a digit or '-'
-// (i.e. coordinate pairs), avoiding complex recursive parsing.
-function extractRings(wkt) {
-  const rings = [];
-  let i = 0;
-  while (i < wkt.length) {
-    if (wkt[i] === '(') {
-      let j = i + 1;
-      while (j < wkt.length && (wkt[j] === ' ' || wkt[j] === '\t' || wkt[j] === '\n' || wkt[j] === '\r')) j++;
-      if (j < wkt.length && (wkt[j] === '-' || (wkt[j] >= '0' && wkt[j] <= '9'))) {
-        // Find the matching closing paren (rings have no nested parens)
-        let end = j;
-        while (end < wkt.length && wkt[end] !== ')') end++;
-        const pts = wkt.slice(i + 1, end).split(',').map(pair => {
-          const parts = pair.trim().split(/\s+/);
-          return [parseFloat(parts[0]), parseFloat(parts[1])];
-        }).filter(p => !isNaN(p[0]) && !isNaN(p[1]));
-        if (pts.length >= 4) rings.push(pts);
-        i = end + 1;
-        continue;
-      }
-    }
-    i++;
-  }
-  return rings;
-}
 
 // ── Iterative Douglas-Peucker simplification ──────────────────────────────────
 function perpDist(p, a, b) {

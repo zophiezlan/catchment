@@ -1,133 +1,34 @@
-import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  IDX,
-  decode,
-  searchPostcodes,
   getLocalities,
   ZONE_COLORS,
   ZONE_COLORS_LIGHT,
   ZONE_COLORS_TEXT,
 } from "../utils/data";
 import { Pill, EquityBar, FieldLabel, Card, EmptyState } from "./Shared";
-
-function useDebounce(callback, delay) {
-  const timer = useRef(null);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  return useCallback(
-    (...args) => {
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => callback(...args), delay);
-    },
-    [callback, delay],
-  );
-}
+import { useLookupState } from "./useLookupState";
 
 export default function Lookup() {
-  const [q, setQ] = useState("");
-  const [res, setRes] = useState(null);
-  const [sugg, setSugg] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [si, setSi] = useState(-1);
-  const [hint, setHint] = useState("");
-  const iRef = useRef(null);
-
-  const debouncedSearch = useDebounce((t) => {
-    const m = searchPostcodes(t, 8);
-    setSugg(m);
-    setOpen(m.length > 0);
-  }, 180);
-
-  function doSearch(v) {
-    setQ(v);
-    setSi(-1);
-    setHint("");
-    const t = v.trim();
-
-    // Validate: if it looks numeric but isn't a valid format, show hint
-    if (/^\d+$/.test(t) && t.length > 4) {
-      setHint("Australian postcodes are 3-4 digits");
-      setSugg([]);
-      setOpen(false);
-      setRes(null);
-      return;
-    }
-
-    // Exact postcode match — show card immediately
-    const n = Number(t);
-    if (/^\d{3,4}$/.test(t) && IDX[n]) {
-      setRes(IDX[n]);
-      setSugg([]);
-      setOpen(false);
-      return;
-    }
-
-    // Search by postcode prefix or place name (2+ chars) — debounced
-    if (t.length >= 2) {
-      debouncedSearch(t);
-    } else {
-      setSugg([]);
-      setOpen(false);
-    }
-    setRes(null);
-  }
-
-  function pick(pc) {
-    setQ(String(pc));
-    setRes(IDX[pc]);
-    setSugg([]);
-    setOpen(false);
-  }
-
-  function handleKey(e) {
-    if (!open || !sugg.length) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSi((i) => Math.min(i + 1, sugg.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSi((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && si >= 0) {
-      e.preventDefault();
-      pick(sugg[si].pc);
-    } else if (e.key === "Escape") {
-      setOpen(false);
-    }
-  }
-
-  const d = res ? decode(res[0]) : null;
-  const multiState = res && res.length > 1;
-
-  // NSP enrichment — lazy-loaded so it doesn't bloat this chunk
-  const [nspCounts, setNspCounts] = useState(null);
-  const [nearestNSP, setNearestNSP] = useState(null);
-  const [suburbDistances, setSuburbDistances] = useState(null);
-  useEffect(() => {
-    if (!d?.pc) { setNspCounts(null); setNearestNSP(null); setSuburbDistances(null); return; }
-    Promise.all([
-      import("../utils/nsp"),
-      import("../data/suburb-centroids.json"),
-      import("../utils/geo"),
-    ]).then(([nspMod, salMod, geoMod]) => {
-      const { NSP_PC, getNearestPrimaryNSP, NSP_ALL } = nspMod;
-      setNspCounts(NSP_PC[d.pc] ?? null);
-      const nearest = getNearestPrimaryNSP(d.pc);
-      setNearestNSP(nearest);
-      // Per-suburb distances to nearest NSP (any type)
-      const salCentroids = salMod.default[d.pc];
-      if (salCentroids) {
-        const all = NSP_ALL;
-        const dists = salCentroids.map(c => {
-          if (!c) return null;
-          const r = geoMod.nearestOutlet(c[0], c[1], all);
-          return r ? r.distanceKm : null;
-        });
-        setSuburbDistances(dists);
-      } else {
-        setSuburbDistances(null);
-      }
-    });
-  }, [d?.pc]);
+  const {
+    q,
+    res,
+    sugg,
+    open,
+    si,
+    hint,
+    iRef,
+    d,
+    multiState,
+    nspCounts,
+    nearestNSP,
+    suburbDistances,
+    doSearch,
+    pick,
+    clearSearch,
+    handleKey,
+    setOpen,
+    setSi,
+  } = useLookupState();
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
@@ -183,14 +84,7 @@ export default function Lookup() {
           />
           {q && (
             <button
-              onClick={() => {
-                setQ("");
-                setRes(null);
-                setSugg([]);
-                setOpen(false);
-                setHint("");
-                iRef.current?.focus();
-              }}
+              onClick={clearSearch}
               aria-label="Clear search"
               style={{
                 position: "absolute",

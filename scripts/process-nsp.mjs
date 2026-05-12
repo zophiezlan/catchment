@@ -1,44 +1,12 @@
 import { readFileSync, writeFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { csv2obj } from "./csv-utils.mjs";
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, "..");
 const DATA_DIR = resolve(ROOT, "NSW Needle and Syringe Program (NSP) outlets.local");
 const OUT = resolve(ROOT, "src/data/nsp.json");
-
-// ── CSV parser (handles quoted fields with embedded newlines) ──────────────
-function parseCSV(text) {
-  const src = text.replace(/^﻿/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const rows = [];
-  let row = [], field = "", inQ = false;
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i];
-    if (inQ) {
-      if (c === '"' && src[i + 1] === '"') { field += '"'; i++; }
-      else if (c === '"') inQ = false;
-      else field += c;
-    } else {
-      if (c === '"') inQ = true;
-      else if (c === ',') { row.push(field); field = ""; }
-      else if (c === '\n') {
-        row.push(field); field = "";
-        if (row.some(f => f)) rows.push(row);
-        row = [];
-      } else field += c;
-    }
-  }
-  if (row.length) { row.push(field); if (row.some(f => f)) rows.push(row); }
-  return rows;
-}
-
-function csv2obj(text) {
-  const [headers, ...data] = parseCSV(text);
-  const keys = headers.map(h => h.trim());
-  return data.map(r =>
-    Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? "").trim()]))
-  );
-}
 
 function wktCoords(wkt) {
   const m = wkt.match(/POINT Z \(([0-9.-]+)\s+([0-9.-]+)/);
