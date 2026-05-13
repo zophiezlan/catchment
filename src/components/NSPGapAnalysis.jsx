@@ -5,7 +5,7 @@ import { MetricCard, SectionLabel, Card, EmptyState } from "./Shared";
 const PAGE_GAP = 30;
 
 const covColor = pct =>
-  pct >= 70 ? "#059669" : pct >= 40 ? "#d97706" : "#ef4444";
+  pct >= 70 ? "var(--c-positive)" : pct >= 40 ? "var(--c-warning)" : "var(--c-negative)";
 
 /**
  * NSPGapAnalysis — coverage gap analysis for NSW postcodes.
@@ -46,19 +46,19 @@ export default function NSPGapAnalysis() {
           label="NSP coverage"
           value={`${summary.coveredPct}%`}
           sub={`${summary.covered.toLocaleString()} postcodes served`}
-          accent="#059669"
+          accent="var(--c-positive)"
         />
         <MetricCard
           label="Uncovered"
           value={(summary.total - summary.covered).toLocaleString()}
           sub="no exact match"
-          accent="#d97706"
+          accent="var(--c-warning)"
         />
         <MetricCard
           label="High-need gaps"
           value={summary.highNeedUncovered.toLocaleString()}
           sub="score ≥ 4 (IRSD + indicators)"
-          accent="#ef4444"
+          accent="var(--c-negative)"
         />
       </div>
 
@@ -171,7 +171,7 @@ export default function NSPGapAnalysis() {
           {paged.map(p => {
             const tier = getTier(p.score);
             const distColor = p.distKm != null
-              ? (p.distKm > 100 ? "#ef4444" : p.distKm > 50 ? "#f97316" : p.distKm > 20 ? "#d97706" : "#059669")
+              ? (p.distKm > 100 ? "var(--c-negative)" : p.distKm > 50 ? "var(--c-orange)" : p.distKm > 20 ? "var(--c-warning)" : "var(--c-positive)")
               : "var(--c-text3)";
             return (
               <div key={p.pc} style={{
@@ -205,13 +205,13 @@ export default function NSPGapAnalysis() {
                 <span style={{
                   textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 11,
                   fontWeight: 600,
-                  color: p.id > 0 ? (p.id <= 2 ? "#ef4444" : p.id <= 4 ? "#d97706" : "var(--c-text2)") : "var(--c-text3)",
+                  color: p.id > 0 ? (p.id <= 2 ? "var(--c-negative)" : p.id <= 4 ? "var(--c-warning)" : "var(--c-text2)") : "var(--c-text3)",
                 }}>
                   {p.id > 0 ? p.id : "—"}
                 </span>
                 <span style={{
                   textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 11,
-                  color: p.ip >= 10 ? "#059669" : p.ip > 0 ? "var(--c-text2)" : "var(--c-text3)",
+                  color: p.ip >= 10 ? "var(--c-positive)" : p.ip > 0 ? "var(--c-text2)" : "var(--c-text3)",
                 }}>
                   {p.ip > 0 ? `${p.ip}%` : "—"}
                 </span>

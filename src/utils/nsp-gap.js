@@ -24,9 +24,9 @@ function needScoreWithDistance(irsd, ip, mmm, distanceKm) {
 }
 
 export const NEED_TIERS = [
-  { min: 6, label: "Critical", color: "#ef4444", bg: "#fef2f2", text: "#991b1b", border: "rgba(239,68,68,0.3)" },
-  { min: 4, label: "High", color: "#f97316", bg: "#fff7ed", text: "#9a3412", border: "rgba(249,115,22,0.3)" },
-  { min: 2, label: "Medium", color: "#d97706", bg: "#fffbeb", text: "#92400e", border: "rgba(217,119,6,0.3)" },
+  { min: 6, label: "Critical", color: "#ef4444", bg: "var(--c-error-bg)", text: "var(--c-error-text)", border: "var(--c-error-border)" },
+  { min: 4, label: "High", color: "#f97316", bg: "var(--c-orange-bg)", text: "var(--c-orange-text)", border: "var(--c-orange-border)" },
+  { min: 2, label: "Medium", color: "#d97706", bg: "var(--c-warning-bg)", text: "var(--c-warning-text)", border: "var(--c-warning-border)" },
   { min: 1, label: "Watch", color: "#a3a3a3", bg: "var(--c-bg3)", text: "var(--c-text3)", border: "var(--c-border)" },
 ];
 

@@ -129,11 +129,19 @@ export function SectionLabel({ children, style: extraStyle }) {
 }
 
 /* ===== Horizontal bar list ===== */
-export function HorizBar({ items, total, compact = false }) {
+export function HorizBar({
+  items,
+  total,
+  compact = false,
+  scaleMax,
+  formatValue,
+}) {
+  const barScale = scaleMax || total;
   return (
     <div role="list" aria-label="Distribution breakdown">
       {items.map((it, i) => {
         const pct = total > 0 ? (it.value / total) * 100 : 0;
+        const barPct = barScale > 0 ? (it.value / barScale) * 100 : 0;
         return (
           <div
             key={i}
@@ -176,7 +184,7 @@ export function HorizBar({ items, total, compact = false }) {
               <div
                 style={{
                   height: "100%",
-                  width: `${Math.max(pct > 0 ? 1.5 : 0, pct)}%`,
+                  width: `${Math.max(barPct > 0 ? 1.5 : 0, barPct)}%`,
                   background: it.color || "var(--c-accent)",
                   borderRadius: 6,
                   transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -194,7 +202,7 @@ export function HorizBar({ items, total, compact = false }) {
                 textAlign: "right",
               }}
             >
-              {it.value}
+              {formatValue ? formatValue(it.value) : it.value}
             </div>
             <div
               style={{

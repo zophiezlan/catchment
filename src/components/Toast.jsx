@@ -68,22 +68,22 @@ export function ToastProvider({ children }) {
                 borderRadius: "var(--radius-sm)",
                 background:
                   t.type === "error"
-                    ? "#fef2f2"
+                    ? "var(--c-error-bg)"
                     : t.type === "warning"
-                      ? "#fef3c7"
+                      ? "var(--c-warning-bg)"
                       : "var(--c-accent-light)",
                 border: `1px solid ${
                   t.type === "error"
-                    ? "#fecaca"
+                    ? "var(--c-error-border)"
                     : t.type === "warning"
-                      ? "#fde68a"
+                      ? "var(--c-warning-border)"
                       : "rgba(5, 150, 105, 0.2)"
                 }`,
                 color:
                   t.type === "error"
-                    ? "#991b1b"
+                    ? "var(--c-error-text)"
                     : t.type === "warning"
-                      ? "#92400e"
+                      ? "var(--c-warning-text)"
                       : "var(--c-accent)",
                 fontSize: 13,
                 fontWeight: 600,

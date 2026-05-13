@@ -42,17 +42,17 @@ export const ZONE_COLORS = {
 };
 
 export const ZONE_COLORS_LIGHT = {
-  1: "#dbeafe",
-  2: "#d1fae5",
-  3: "#fef3c7",
-  4: "#fee2e2",
+  1: "var(--c-zone1-bg)",
+  2: "var(--c-zone2-bg)",
+  3: "var(--c-zone3-bg)",
+  4: "var(--c-zone4-bg)",
 };
 
 export const ZONE_COLORS_TEXT = {
-  1: "#1e40af",
-  2: "#065f46",
-  3: "#92400e",
-  4: "#991b1b",
+  1: "var(--c-zone1-text)",
+  2: "var(--c-zone2-text)",
+  3: "var(--c-zone3-text)",
+  4: "var(--c-zone4-text)",
 };
 
 // Decode a raw record into a readable object

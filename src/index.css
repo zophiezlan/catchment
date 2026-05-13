@@ -50,6 +50,47 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
 
+  /* Warning — amber */
+  --c-warning: #d97706;
+  --c-warning-text: #92400e;
+  --c-warning-bg: #fef3c7;
+  --c-warning-border: #fde68a;
+
+  /* Info — blue (secondary accent) */
+  --c-info: #3b82f6;
+  --c-info-text: #1e40af;
+  --c-info-bg: #eff6ff;
+  --c-info-light: rgba(59, 130, 246, 0.08);
+  --c-info-border: rgba(59, 130, 246, 0.25);
+
+  /* Error — red */
+  --c-error: #dc2626;
+  --c-error-text: #991b1b;
+  --c-error-bg: #fef2f2;
+  --c-error-border: #fecaca;
+
+  /* Orange (mid-range severity) */
+  --c-orange: #f97316;
+  --c-orange-text: #9a3412;
+  --c-orange-bg: #fff7ed;
+  --c-orange-border: rgba(249, 115, 22, 0.3);
+
+  /* Zone backgrounds */
+  --c-zone1-bg: #dbeafe;
+  --c-zone2-bg: #d1fae5;
+  --c-zone3-bg: #fef3c7;
+  --c-zone4-bg: #fee2e2;
+
+  /* Zone text */
+  --c-zone1-text: #1e40af;
+  --c-zone2-text: #065f46;
+  --c-zone3-text: #92400e;
+  --c-zone4-text: #991b1b;
+
+  /* Positive / negative indicators */
+  --c-positive: #059669;
+  --c-negative: #dc2626;
+
   /* Tooltip */
   --tooltip-bg: #1a1f25;
   --tooltip-text: #ffffff;
@@ -83,8 +124,65 @@
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.2);
     --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.25);
 
+    /* Warning — amber */
+    --c-warning: #fbbf24;
+    --c-warning-text: #fcd34d;
+    --c-warning-bg: rgba(217, 119, 6, 0.12);
+    --c-warning-border: rgba(217, 119, 6, 0.25);
+
+    /* Info — blue */
+    --c-info: #60a5fa;
+    --c-info-text: #93c5fd;
+    --c-info-bg: rgba(59, 130, 246, 0.1);
+    --c-info-light: rgba(59, 130, 246, 0.06);
+    --c-info-border: rgba(59, 130, 246, 0.2);
+
+    /* Error — red */
+    --c-error: #f87171;
+    --c-error-text: #fca5a5;
+    --c-error-bg: rgba(239, 68, 68, 0.1);
+    --c-error-border: rgba(239, 68, 68, 0.2);
+
+    /* Orange */
+    --c-orange: #fb923c;
+    --c-orange-text: #fdba74;
+    --c-orange-bg: rgba(249, 115, 22, 0.1);
+    --c-orange-border: rgba(249, 115, 22, 0.2);
+
+    /* Zone backgrounds */
+    --c-zone1-bg: rgba(59, 130, 246, 0.12);
+    --c-zone2-bg: rgba(5, 150, 105, 0.12);
+    --c-zone3-bg: rgba(217, 119, 6, 0.12);
+    --c-zone4-bg: rgba(220, 38, 38, 0.12);
+
+    /* Zone text */
+    --c-zone1-text: #93c5fd;
+    --c-zone2-text: #6ee7b7;
+    --c-zone3-text: #fcd34d;
+    --c-zone4-text: #fca5a5;
+
+    /* Positive / negative */
+    --c-positive: #34d399;
+    --c-negative: #f87171;
+
     --tooltip-bg: #e4e6ea;
     --tooltip-text: #141618;
+  }
+}
+
+/* ===== Leaflet dark-mode ===== */
+@media (prefers-color-scheme: dark) {
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85);
+  }
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background: var(--c-surface) !important;
+    color: var(--c-text) !important;
+  }
+  .leaflet-popup-content-wrapper {
+    border: 1px solid var(--c-border) !important;
+    box-shadow: var(--shadow-md) !important;
   }
 }
 

@@ -14,9 +14,9 @@ import NSPGapAnalysis from "./NSPGapAnalysis";
 
 // ── Type config ──────────────────────────────────────────────────────────────
 const TYPE = {
-  primary:   { label: "Primary NSP",   color: "#059669", bg: "#ecfdf5", text: "#065f46", border: "rgba(5,150,105,0.3)" },
-  secondary: { label: "Secondary NSP", color: "#3b82f6", bg: "#eff6ff", text: "#1e40af", border: "rgba(59,130,246,0.3)" },
-  pharmacy:  { label: "Pharmacy",      color: "#d97706", bg: "#fffbeb", text: "#92400e", border: "rgba(217,119,6,0.3)" },
+  primary:   { label: "Primary NSP",   color: "#059669", bg: "var(--c-zone2-bg)", text: "var(--c-zone2-text)", border: "rgba(5,150,105,0.3)" },
+  secondary: { label: "Secondary NSP", color: "#3b82f6", bg: "var(--c-info-bg)",  text: "var(--c-info-text)",  border: "var(--c-info-border)" },
+  pharmacy:  { label: "Pharmacy",      color: "#d97706", bg: "var(--c-warning-bg)", text: "var(--c-warning-text)", border: "var(--c-warning-border)" },
 };
 
 // ── Facility normaliser ───────────────────────────────────────────────────────
@@ -95,10 +95,10 @@ function NSPMap({ outlets }) {
         .bindPopup(
           `<div style="font-family:system-ui;font-size:13px;min-width:180px;line-height:1.5">
             <strong style="font-size:14px;display:block;margin-bottom:2px">${o.n}</strong>
-            <span style="color:#666">${o.a}, ${o.s}${o.p ? " " + o.p : ""}</span>
-            ${lhdName ? `<div style="font-size:11px;color:#888;margin-top:3px">${lhdName}</div>` : ""}
-            ${o.h ? `<div style="margin-top:6px;white-space:pre-line;font-size:11px;color:#555;border-top:1px solid #eee;padding-top:5px">${o.h}</div>` : ""}
-            ${facs !== "—" ? `<div style="margin-top:5px;font-size:11px;color:#777">${facs}</div>` : ""}
+            <span style="color:var(--c-text2)">${o.a}, ${o.s}${o.p ? " " + o.p : ""}</span>
+            ${lhdName ? `<div style="font-size:11px;color:var(--c-text3);margin-top:3px">${lhdName}</div>` : ""}
+            ${o.h ? `<div style="margin-top:6px;white-space:pre-line;font-size:11px;color:var(--c-text2);border-top:1px solid var(--c-border);padding-top:5px">${o.h}</div>` : ""}
+            ${facs !== "—" ? `<div style="margin-top:5px;font-size:11px;color:var(--c-text3)">${facs}</div>` : ""}
           </div>`,
           { maxWidth: 280 }
         )
