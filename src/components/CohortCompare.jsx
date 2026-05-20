@@ -25,7 +25,7 @@ function Delta({ a, b, suffix = "", flip = false, mono = true }) {
         fontSize: 11,
         fontWeight: 600,
         fontFamily: "var(--font-mono)",
-        color: positive ? "#059669" : "#dc2626",
+        color: positive ? "var(--c-positive)" : "var(--c-negative)",
       }}
     >
       {diff > 0 ? "+" : ""}
@@ -252,8 +252,8 @@ export default function CohortCompare({ cohortA, cohortB, onClose }) {
           marginBottom: 16,
           padding: "16px 20px",
           background:
-            "linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(5, 150, 105, 0.06))",
-          borderColor: "rgba(59, 130, 246, 0.15)",
+            "linear-gradient(135deg, var(--c-info-light), var(--c-accent-muted))",
+          borderColor: "var(--c-info-border)",
         }}
       >
         <div

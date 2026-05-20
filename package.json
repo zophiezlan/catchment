@@ -9,7 +9,13 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy": "npm run build && npx wrangler pages deploy"
+    "deploy": "npm run build && npx wrangler pages deploy",
+    "data:process:abs-centroids": "node scripts/process-abs-centroids.mjs",
+    "data:process:centroids": "node scripts/process-centroids.mjs",
+    "data:process:lhd-bounds": "node scripts/process-lhd-bounds.mjs",
+    "data:process:localities": "node scripts/process-localities.mjs",
+    "data:process:nsp": "node scripts/process-nsp.mjs",
+    "data:process:sal-centroids": "node scripts/process-sal-centroids.mjs"
   },
   "dependencies": {
     "framer-motion": "^12.38.0",

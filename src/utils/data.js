@@ -42,17 +42,17 @@ export const ZONE_COLORS = {
 };
 
 export const ZONE_COLORS_LIGHT = {
-  1: "#dbeafe",
-  2: "#d1fae5",
-  3: "#fef3c7",
-  4: "#fee2e2",
+  1: "var(--c-zone1-bg)",
+  2: "var(--c-zone2-bg)",
+  3: "var(--c-zone3-bg)",
+  4: "var(--c-zone4-bg)",
 };
 
 export const ZONE_COLORS_TEXT = {
-  1: "#1e40af",
-  2: "#065f46",
-  3: "#92400e",
-  4: "#991b1b",
+  1: "var(--c-zone1-text)",
+  2: "var(--c-zone2-text)",
+  3: "var(--c-zone3-text)",
+  4: "var(--c-zone4-text)",
 };
 
 // Decode a raw record into a readable object
@@ -135,6 +135,55 @@ export function getLocalities(pc) {
   return LOCALITIES[pc] || [];
 }
 
+function mapPostcodeResult(pc, matchedPlace) {
+  const d = decode(IDX[pc][0]);
+  const primary = d.pl.toLowerCase();
+  const matchedLocality =
+    matchedPlace && matchedPlace !== primary
+      ? matchedPlace.replace(/\b\w/g, (c) => c.toUpperCase())
+      : undefined;
+  return { pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn, matchedLocality };
+}
+
+function addUniquePostcodeResult(results, seen, pc, matchedPlace) {
+  if (seen.has(pc)) return false;
+  seen.add(pc);
+  results.push(mapPostcodeResult(pc, matchedPlace));
+  return true;
+}
+
+function addPlaceMatches(results, seen, ql, limit, predicate) {
+  for (const place of ALL_PLACES) {
+    if (results.length >= limit) break;
+    if (!predicate(place, ql)) continue;
+    for (const pc of PLACE_IDX[place]) {
+      addUniquePostcodeResult(results, seen, pc, place);
+      if (results.length >= limit) break;
+    }
+  }
+}
+
+function addFuzzyPlaceMatches(results, seen, ql, limit) {
+  if (results.length >= limit || ql.length < 3) return;
+  const fuzzyMatches = fuzzySearch(ql, TRIGRAM_IDX, limit * 2);
+  for (const { name } of fuzzyMatches) {
+    if (results.length >= limit) break;
+    for (const pc of PLACE_IDX[name]) {
+      addUniquePostcodeResult(results, seen, pc, name);
+      if (results.length >= limit) break;
+    }
+  }
+}
+
+function searchNumericPostcodes(q, limit) {
+  return ALL_POSTCODES.filter((p) => String(p).startsWith(q))
+    .slice(0, limit)
+    .map((pc) => {
+      const d = decode(IDX[pc][0]);
+      return { pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn };
+    });
+}
+
 // Search postcodes by number or place name, returns [{pc, pl, st, z, zn, matchedLocality?}, ...]
 export function searchPostcodes(query, limit = 8) {
   const q = query.trim();
@@ -142,12 +191,7 @@ export function searchPostcodes(query, limit = 8) {
 
   // Numeric search — match postcodes starting with digits
   if (/^\d+$/.test(q)) {
-    return ALL_POSTCODES.filter((p) => String(p).startsWith(q))
-      .slice(0, limit)
-      .map((pc) => {
-        const d = decode(IDX[pc][0]);
-        return { pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn };
-      });
+    return searchNumericPostcodes(q, limit);
   }
 
   // Place name search
@@ -155,54 +199,24 @@ export function searchPostcodes(query, limit = 8) {
   const results = [];
   const seen = new Set();
 
-  const addResult = (pc, matchedPlace) => {
-    if (seen.has(pc)) return false;
-    seen.add(pc);
-    const d = decode(IDX[pc][0]);
-    const primary = d.pl.toLowerCase();
-    // Include matchedLocality when the match came from a different name than the primary
-    const matchedLocality = matchedPlace && matchedPlace !== primary
-      ? matchedPlace.replace(/\b\w/g, c => c.toUpperCase())
-      : undefined;
-    results.push({ pc, pl: d.pl, st: d.st, z: d.z, zn: d.zn, matchedLocality });
-    return true;
-  };
-
   // Phase 1: Exact prefix match
-  for (const place of ALL_PLACES) {
-    if (results.length >= limit) break;
-    if (place.startsWith(ql)) {
-      for (const pc of PLACE_IDX[place]) {
-        addResult(pc, place);
-        if (results.length >= limit) break;
-      }
-    }
-  }
+  addPlaceMatches(results, seen, ql, limit, (place, queryLower) =>
+    place.startsWith(queryLower)
+  );
 
   // Phase 2: Substring match
   if (results.length < limit) {
-    for (const place of ALL_PLACES) {
-      if (results.length >= limit) break;
-      if (!place.startsWith(ql) && place.includes(ql)) {
-        for (const pc of PLACE_IDX[place]) {
-          addResult(pc, place);
-          if (results.length >= limit) break;
-        }
-      }
-    }
+    addPlaceMatches(
+      results,
+      seen,
+      ql,
+      limit,
+      (place, queryLower) => !place.startsWith(queryLower) && place.includes(queryLower)
+    );
   }
 
   // Phase 3: Fuzzy match (only if previous phases found fewer than limit results)
-  if (results.length < limit && ql.length >= 3) {
-    const fuzzyMatches = fuzzySearch(ql, TRIGRAM_IDX, limit * 2);
-    for (const { name } of fuzzyMatches) {
-      if (results.length >= limit) break;
-      for (const pc of PLACE_IDX[name]) {
-        addResult(pc, name);
-        if (results.length >= limit) break;
-      }
-    }
-  }
+  addFuzzyPlaceMatches(results, seen, ql, limit);
 
   return results;
 }

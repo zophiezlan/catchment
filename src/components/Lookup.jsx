@@ -1,133 +1,34 @@
-import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  IDX,
-  decode,
-  searchPostcodes,
   getLocalities,
   ZONE_COLORS,
   ZONE_COLORS_LIGHT,
   ZONE_COLORS_TEXT,
 } from "../utils/data";
 import { Pill, EquityBar, FieldLabel, Card, EmptyState } from "./Shared";
-
-function useDebounce(callback, delay) {
-  const timer = useRef(null);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  return useCallback(
-    (...args) => {
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => callback(...args), delay);
-    },
-    [callback, delay],
-  );
-}
+import { useLookupState } from "./useLookupState";
 
 export default function Lookup() {
-  const [q, setQ] = useState("");
-  const [res, setRes] = useState(null);
-  const [sugg, setSugg] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [si, setSi] = useState(-1);
-  const [hint, setHint] = useState("");
-  const iRef = useRef(null);
-
-  const debouncedSearch = useDebounce((t) => {
-    const m = searchPostcodes(t, 8);
-    setSugg(m);
-    setOpen(m.length > 0);
-  }, 180);
-
-  function doSearch(v) {
-    setQ(v);
-    setSi(-1);
-    setHint("");
-    const t = v.trim();
-
-    // Validate: if it looks numeric but isn't a valid format, show hint
-    if (/^\d+$/.test(t) && t.length > 4) {
-      setHint("Australian postcodes are 3-4 digits");
-      setSugg([]);
-      setOpen(false);
-      setRes(null);
-      return;
-    }
-
-    // Exact postcode match — show card immediately
-    const n = Number(t);
-    if (/^\d{3,4}$/.test(t) && IDX[n]) {
-      setRes(IDX[n]);
-      setSugg([]);
-      setOpen(false);
-      return;
-    }
-
-    // Search by postcode prefix or place name (2+ chars) — debounced
-    if (t.length >= 2) {
-      debouncedSearch(t);
-    } else {
-      setSugg([]);
-      setOpen(false);
-    }
-    setRes(null);
-  }
-
-  function pick(pc) {
-    setQ(String(pc));
-    setRes(IDX[pc]);
-    setSugg([]);
-    setOpen(false);
-  }
-
-  function handleKey(e) {
-    if (!open || !sugg.length) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSi((i) => Math.min(i + 1, sugg.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSi((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && si >= 0) {
-      e.preventDefault();
-      pick(sugg[si].pc);
-    } else if (e.key === "Escape") {
-      setOpen(false);
-    }
-  }
-
-  const d = res ? decode(res[0]) : null;
-  const multiState = res && res.length > 1;
-
-  // NSP enrichment — lazy-loaded so it doesn't bloat this chunk
-  const [nspCounts, setNspCounts] = useState(null);
-  const [nearestNSP, setNearestNSP] = useState(null);
-  const [suburbDistances, setSuburbDistances] = useState(null);
-  useEffect(() => {
-    if (!d?.pc) { setNspCounts(null); setNearestNSP(null); setSuburbDistances(null); return; }
-    Promise.all([
-      import("../utils/nsp"),
-      import("../data/suburb-centroids.json"),
-      import("../utils/geo"),
-    ]).then(([nspMod, salMod, geoMod]) => {
-      const { NSP_PC, getNearestPrimaryNSP, NSP_ALL } = nspMod;
-      setNspCounts(NSP_PC[d.pc] ?? null);
-      const nearest = getNearestPrimaryNSP(d.pc);
-      setNearestNSP(nearest);
-      // Per-suburb distances to nearest NSP (any type)
-      const salCentroids = salMod.default[d.pc];
-      if (salCentroids) {
-        const all = NSP_ALL;
-        const dists = salCentroids.map(c => {
-          if (!c) return null;
-          const r = geoMod.nearestOutlet(c[0], c[1], all);
-          return r ? r.distanceKm : null;
-        });
-        setSuburbDistances(dists);
-      } else {
-        setSuburbDistances(null);
-      }
-    });
-  }, [d?.pc]);
+  const {
+    q,
+    res,
+    sugg,
+    open,
+    si,
+    hint,
+    iRef,
+    d,
+    multiState,
+    nspCounts,
+    nearestNSP,
+    suburbDistances,
+    doSearch,
+    pick,
+    clearSearch,
+    handleKey,
+    setOpen,
+    setSi,
+  } = useLookupState();
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
@@ -183,14 +84,7 @@ export default function Lookup() {
           />
           {q && (
             <button
-              onClick={() => {
-                setQ("");
-                setRes(null);
-                setSugg([]);
-                setOpen(false);
-                setHint("");
-                iRef.current?.focus();
-              }}
+              onClick={clearSearch}
               aria-label="Clear search"
               style={{
                 position: "absolute",
@@ -317,7 +211,7 @@ export default function Lookup() {
               marginTop: 6,
               fontSize: 12,
               fontWeight: 500,
-              color: "#d97706",
+              color: "var(--c-warning)",
               display: "flex",
               alignItems: "center",
               gap: 5,
@@ -444,7 +338,7 @@ export default function Lookup() {
                       {locs.map((loc, i) => {
                         const dist = hasDists ? suburbDistances[i] : null;
                         const distColor = dist != null
-                          ? dist > 50 ? "#ef4444" : dist > 20 ? "#d97706" : "#059669"
+                          ? dist > 50 ? "var(--c-negative)" : dist > 20 ? "var(--c-warning)" : "var(--c-positive)"
                           : null;
                         return (
                           <span
@@ -746,21 +640,21 @@ export default function Lookup() {
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     {nspCounts.primary > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "#ecfdf5", border: "1px solid rgba(5,150,105,0.2)" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "#059669", lineHeight: 1 }}>{nspCounts.primary}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#065f46", marginTop: 3 }}>Primary NSP</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "var(--c-zone2-bg)", border: "1px solid rgba(5,150,105,0.2)" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "var(--c-accent)", lineHeight: 1 }}>{nspCounts.primary}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-zone2-text)", marginTop: 3 }}>Primary NSP</span>
                       </div>
                     )}
                     {nspCounts.secondary > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "#eff6ff", border: "1px solid rgba(59,130,246,0.2)" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "#3b82f6", lineHeight: 1 }}>{nspCounts.secondary}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#1e40af", marginTop: 3 }}>Secondary</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "var(--c-info-bg)", border: "1px solid var(--c-info-border)" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "var(--c-info)", lineHeight: 1 }}>{nspCounts.secondary}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-info-text)", marginTop: 3 }}>Secondary</span>
                       </div>
                     )}
                     {nspCounts.pharmacy > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "#fffbeb", border: "1px solid rgba(217,119,6,0.2)" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "#d97706", lineHeight: 1 }}>{nspCounts.pharmacy}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e", marginTop: 3 }}>Pharmacies</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 16px", borderRadius: "var(--radius-sm)", background: "var(--c-warning-bg)", border: "1px solid var(--c-warning-border)" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "var(--c-warning)", lineHeight: 1 }}>{nspCounts.pharmacy}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-warning-text)", marginTop: 3 }}>Pharmacies</span>
                       </div>
                     )}
                   </div>
@@ -802,8 +696,8 @@ export default function Lookup() {
                       gap: 12,
                       padding: "10px 14px",
                       borderRadius: "var(--radius-sm)",
-                      background: nearestNSP.distanceKm > 50 ? "#fef2f2" : nearestNSP.distanceKm > 20 ? "#fffbeb" : "#ecfdf5",
-                      border: `1px solid ${nearestNSP.distanceKm > 50 ? "rgba(239,68,68,0.2)" : nearestNSP.distanceKm > 20 ? "rgba(217,119,6,0.2)" : "rgba(5,150,105,0.2)"}`,
+                      background: nearestNSP.distanceKm > 50 ? "var(--c-error-bg)" : nearestNSP.distanceKm > 20 ? "var(--c-warning-bg)" : "var(--c-zone2-bg)",
+                      border: `1px solid ${nearestNSP.distanceKm > 50 ? "var(--c-error-border)" : nearestNSP.distanceKm > 20 ? "var(--c-warning-border)" : "rgba(5,150,105,0.2)"}`,
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -822,7 +716,7 @@ export default function Lookup() {
                     </div>
                     <div style={{
                       fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700,
-                      color: nearestNSP.distanceKm > 50 ? "#ef4444" : nearestNSP.distanceKm > 20 ? "#d97706" : "#059669",
+                      color: nearestNSP.distanceKm > 50 ? "var(--c-negative)" : nearestNSP.distanceKm > 20 ? "var(--c-warning)" : "var(--c-positive)",
                       whiteSpace: "nowrap",
                     }}>
                       {nearestNSP.distanceKm < 1
@@ -833,9 +727,9 @@ export default function Lookup() {
                   {nearestNSP.distanceKm > 50 && (
                     <div style={{
                       display: "inline-flex", alignItems: "center", gap: 4,
-                      fontSize: 11, fontWeight: 600, color: "#991b1b",
+                      fontSize: 11, fontWeight: 600, color: "var(--c-error-text)",
                       marginTop: 6, padding: "3px 8px", borderRadius: 6,
-                      background: "#fef2f2", border: "1px solid rgba(239,68,68,0.2)",
+                      background: "var(--c-error-bg)", border: "1px solid var(--c-error-border)",
                     }}>
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                         <path d="M6 1L11 10H1L6 1Z" />

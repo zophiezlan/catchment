@@ -69,3 +69,20 @@ To add new fields: extend the record array in the JSON, update the `decode()` fu
 ## Data refresh
 
 The master dataset lives in `shopify_postcode_shipping_tools_2026_v2.3.xlsx`. To regenerate the JSON from a new version of that workbook, extract columns using openpyxl with the same compact format. See the Data_Sourcing_Guide sheet in the workbook for external data update instructions.
+
+### Processing helpers
+
+The repository includes one-off data processing utilities under `scripts/`.
+
+Run with npm scripts:
+
+```bash
+npm run data:process:localities -- <path-to-pc001.csv>
+npm run data:process:abs-centroids -- <path-to-POA_2021_AUST_GDA2020.shp>
+npm run data:process:sal-centroids -- <path-to-SAL_2021_AUST_GDA2020.shp>
+npm run data:process:lhd-bounds -- <path-to-lhd-geojson-or-csv>
+npm run data:process:nsp -- <path-to-nsp-source>
+npm run data:process:centroids
+```
+
+Use `--` before script arguments so npm forwards them to the underlying Node command.

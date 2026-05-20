@@ -2,6 +2,9 @@ import RAW from "../data/nsp.json";
 import CENTROIDS from "../data/postcode-centroids.json";
 import { DATA, STATES, LHD_NAMES, ZONE_MAP, ZONE_NAMES } from "./data.js";
 import { nearestOutlet } from "./geo.js";
+import { NEED_TIERS, getTier, buildGapAnalysis } from "./nsp-gap.js";
+
+export { NEED_TIERS, getTier };
 
 export const NSP_LHDS      = RAW.lhds;
 export const NSP_PRIMARY    = RAW.primary;
@@ -9,74 +12,51 @@ export const NSP_SECONDARY  = RAW.secondary;
 export const NSP_PHARMACIES = RAW.pharmacies;
 export const NSP_ALL        = [...RAW.primary, ...RAW.secondary, ...RAW.pharmacies];
 
-// postcode → { primary, secondary, pharmacy } outlet counts
-export const NSP_PC = (() => {
+function buildPostcodeOutletIndex() {
   const idx = {};
-  const add = (outlets, key) =>
-    outlets.forEach(o => {
+  const add = (outlets, key) => {
+    outlets.forEach((o) => {
       if (!o.p) return;
       if (!idx[o.p]) idx[o.p] = { primary: 0, secondary: 0, pharmacy: 0 };
       idx[o.p][key]++;
     });
-  add(RAW.primary,    "primary");
-  add(RAW.secondary,  "secondary");
+  };
+
+  add(RAW.primary, "primary");
+  add(RAW.secondary, "secondary");
   add(RAW.pharmacies, "pharmacy");
   return idx;
-})();
+}
+
+// postcode → { primary, secondary, pharmacy } outlet counts
+export const NSP_PC = buildPostcodeOutletIndex();
 
 export const NSP_FACILITIES = [...new Set(NSP_ALL.flatMap(o => o.f))].sort();
 
-export function getNSPByLHD() {
-  const map = Object.fromEntries(
+function createLhdCountMap() {
+  return Object.fromEntries(
     NSP_LHDS.map((name, i) => [i, { name, primary: 0, secondary: 0, pharmacy: 0 }])
   );
-  RAW.primary.forEach(o    => { if (o.l >= 0 && map[o.l]) map[o.l].primary++; });
-  RAW.secondary.forEach(o  => { if (o.l >= 0 && map[o.l]) map[o.l].secondary++; });
-  RAW.pharmacies.forEach(o => { if (o.l >= 0 && map[o.l]) map[o.l].pharmacy++; });
-  return Object.values(map).sort(
-    (a, b) => (b.primary + b.secondary + b.pharmacy) - (a.primary + a.secondary + a.pharmacy)
-  );
 }
 
-// ── Gap analysis ──────────────────────────────────────────────────────────────
-
-// Need score (0–7): IRSD + Indigenous% + MMM
-function needScore(irsd, ip, mmm) {
-  let s = 0;
-  if (irsd > 0) {
-    if (irsd <= 2) s += 3;
-    else if (irsd <= 4) s += 2;
-    else if (irsd <= 6) s += 1;
-  }
-  if (ip >= 10) s += 2;
-  else if (ip >= 3)  s += 1;
-  if (mmm >= 6) s += 2;
-  else if (mmm >= 4) s += 1;
-  return s;
+function incrementLhdCounts(map, outlets, key) {
+  outlets.forEach((o) => {
+    if (o.l >= 0 && map[o.l]) map[o.l][key]++;
+  });
 }
 
-/**
- * Distance-aware need score (0–9): IRSD + Indigenous% + MMM + distance
- * Extends the base score with distance-to-nearest-outlet weighting.
- */
-function needScoreWithDistance(irsd, ip, mmm, distanceKm) {
-  let s = needScore(irsd, ip, mmm);
-  if (distanceKm != null) {
-    if (distanceKm > 100) s += 2;
-    else if (distanceKm > 50) s += 1;
-  }
-  return s;
+function sortLhdCountsByTotal(a, b) {
+  const totalA = a.primary + a.secondary + a.pharmacy;
+  const totalB = b.primary + b.secondary + b.pharmacy;
+  return totalB - totalA;
 }
 
-export const NEED_TIERS = [
-  { min: 6, label: "Critical", color: "#ef4444", bg: "#fef2f2", text: "#991b1b", border: "rgba(239,68,68,0.3)" },
-  { min: 4, label: "High",     color: "#f97316", bg: "#fff7ed", text: "#9a3412", border: "rgba(249,115,22,0.3)" },
-  { min: 2, label: "Medium",   color: "#d97706", bg: "#fffbeb", text: "#92400e", border: "rgba(217,119,6,0.3)" },
-  { min: 1, label: "Watch",    color: "#a3a3a3", bg: "var(--c-bg3)", text: "var(--c-text3)", border: "var(--c-border)" },
-];
-
-export function getTier(score) {
-  return NEED_TIERS.find(t => score >= t.min) ?? null;
+export function getNSPByLHD() {
+  const map = createLhdCountMap();
+  incrementLhdCounts(map, RAW.primary, "primary");
+  incrementLhdCounts(map, RAW.secondary, "secondary");
+  incrementLhdCounts(map, RAW.pharmacies, "pharmacy");
+  return Object.values(map).sort(sortLhdCountsByTotal);
 }
 
 // ── Nearest NSP lookup ───────────────────────────────────────────────────────
@@ -115,65 +95,13 @@ export function hasCentroid(pc) {
 }
 
 export function getGapAnalysis() {
-  const summary = { total: 0, covered: 0, coveredPct: 0, highNeedUncovered: 0 };
-  const lhdMap  = {};
-  const uncovered = [];
-
-  DATA.forEach(r => {
-    if (STATES[r[1]] !== "NSW") return;
-    // Skip postcodes with neither population nor IRSD (non-residential / no data)
-    if ((r[7] || 0) <= 0 && (r[9] || 0) <= 0) return;
-
-    const pc  = r[0];
-    const lhd = r[6] >= 0 ? LHD_NAMES[r[6]] : "—";
-    const covered = !!NSP_PC[pc];
-
-    summary.total++;
-    if (covered) summary.covered++;
-
-    if (lhd !== "—") {
-      if (!lhdMap[lhd]) lhdMap[lhd] = { total: 0, covered: 0 };
-      lhdMap[lhd].total++;
-      if (covered) lhdMap[lhd].covered++;
-    }
-
-    if (!covered) {
-      // Calculate distance to nearest outlet if centroid available
-      const nearest = getNearestNSP(pc);
-      const distKm = nearest ? nearest.distanceKm : null;
-      const score = needScoreWithDistance(r[9] || 0, r[8] || 0, r[3] || 0, distKm);
-
-      if (score >= 1) {
-        uncovered.push({
-          pc,
-          pl:  r[2] || "",
-          lhd,
-          erp: r[7] || 0,
-          ip:  r[8] || 0,
-          id:  r[9] || 0,
-          mmm: r[3] || 0,
-          zn:  ZONE_NAMES[ZONE_MAP[r[3]] || 0] || "",
-          score,
-          distKm,
-          nearestOutlet: nearest?.outlet?.n || null,
-        });
-        if (score >= 4) summary.highNeedUncovered++;
-      }
-    }
+  return buildGapAnalysis({
+    data: DATA,
+    states: STATES,
+    lhdNames: LHD_NAMES,
+    nspPc: NSP_PC,
+    zoneMap: ZONE_MAP,
+    zoneNames: ZONE_NAMES,
+    getNearestNsp: getNearestNSP,
   });
-
-  summary.coveredPct =
-    summary.total > 0 ? Math.round((summary.covered / summary.total) * 100) : 0;
-
-  const lhdCoverage = Object.entries(lhdMap)
-    .map(([name, d]) => ({
-      name,
-      ...d,
-      pct: d.total > 0 ? Math.round((d.covered / d.total) * 100) : 0,
-    }))
-    .sort((a, b) => a.pct - b.pct); // worst coverage first
-
-  uncovered.sort((a, b) => b.score - a.score);
-
-  return { summary, lhdCoverage, uncovered };
 }

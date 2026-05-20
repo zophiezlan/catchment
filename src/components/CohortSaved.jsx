@@ -102,12 +102,12 @@ export default function CohortSaved({
               borderRadius: "var(--radius-sm)",
               border: "1px solid",
               borderColor: compareMode
-                ? "rgba(59, 130, 246, 0.3)"
+                ? "var(--c-info-border)"
                 : "var(--c-border)",
               background: compareMode
-                ? "rgba(59, 130, 246, 0.08)"
+                ? "var(--c-info-light)"
                 : "var(--c-surface)",
-              color: compareMode ? "#3b82f6" : "var(--c-text2)",
+              color: compareMode ? "var(--c-info)" : "var(--c-text2)",
               fontSize: 12,
               fontWeight: 600,
               fontFamily: "var(--font-body)",
@@ -150,8 +150,8 @@ export default function CohortSaved({
                   marginTop: 10,
                   padding: "10px 14px",
                   borderRadius: "var(--radius-sm)",
-                  background: "rgba(59, 130, 246, 0.06)",
-                  border: "1px solid rgba(59, 130, 246, 0.15)",
+                  background: "var(--c-info-light)",
+                  border: "1px solid var(--c-info-border)",
                   fontSize: 12,
                   color: "var(--c-text2)",
                   display: "flex",
@@ -164,13 +164,13 @@ export default function CohortSaved({
                   height="14"
                   viewBox="0 0 14 14"
                   fill="none"
-                  stroke="#3b82f6"
+                  stroke="var(--c-info)"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                 >
                   <circle cx="7" cy="7" r="5.5" />
                   <path d="M7 4.5v3" />
-                  <circle cx="7" cy="10" r="0.5" fill="#3b82f6" />
+                  <circle cx="7" cy="10" r="0.5" fill="var(--c-info)" />
                 </svg>
                 {!compareA
                   ? "Select the first cohort (A)"
@@ -182,7 +182,7 @@ export default function CohortSaved({
                     style={{
                       marginLeft: "auto",
                       fontWeight: 600,
-                      color: "#3b82f6",
+                      color: "var(--c-info)",
                       fontFamily: "var(--font-mono)",
                       fontSize: 11,
                     }}
@@ -216,7 +216,7 @@ export default function CohortSaved({
                             ? "1px solid var(--c-border)"
                             : "none",
                         background: selected
-                          ? "rgba(59, 130, 246, 0.06)"
+                          ? "var(--c-info-light)"
                           : "transparent",
                         transition: "background 0.1s ease",
                       }}
@@ -235,9 +235,9 @@ export default function CohortSaved({
                             width: 22,
                             height: 22,
                             borderRadius: 6,
-                            border: `2px solid ${selected ? "#3b82f6" : "var(--c-border2)"}`,
+                            border: `2px solid ${selected ? "var(--c-info)" : "var(--c-border2)"}`,
                             background: selected
-                              ? "#3b82f6"
+                              ? "var(--c-info)"
                               : "transparent",
                             display: "flex",
                             alignItems: "center",
@@ -292,11 +292,11 @@ export default function CohortSaved({
                           style={{
                             padding: "6px 12px",
                             borderRadius: "var(--radius-xs)",
-                            border: `1px solid ${selected ? "#3b82f6" : "var(--c-border)"}`,
+                            border: `1px solid ${selected ? "var(--c-info)" : "var(--c-border)"}`,
                             background: selected
-                              ? "rgba(59, 130, 246, 0.1)"
+                              ? "var(--c-info-bg)"
                               : "var(--c-surface)",
-                            color: selected ? "#3b82f6" : "var(--c-text2)",
+                            color: selected ? "var(--c-info)" : "var(--c-text2)",
                             fontSize: 11,
                             fontWeight: 600,
                             fontFamily: "var(--font-body)",
@@ -413,12 +413,12 @@ export default function CohortSaved({
                       padding: "9px 20px",
                       borderRadius: "var(--radius-sm)",
                       border: "none",
-                      background: "#3b82f6",
+                      background: "var(--c-info)",
                       color: "#fff",
                       fontSize: 13,
                       fontWeight: 600,
                       fontFamily: "var(--font-body)",
-                      boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+                      boxShadow: "0 2px 8px var(--c-info-border)",
                       display: "flex",
                       alignItems: "center",
                       gap: 6,

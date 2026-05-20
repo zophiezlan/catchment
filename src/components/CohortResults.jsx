@@ -151,12 +151,12 @@ export default function CohortResults({ results: r, resultsRef, onCopy }) {
           style={{
             fontSize: 12,
             fontWeight: 500,
-            color: "#92400e",
-            background: "#fef3c7",
+            color: "var(--c-warning-text)",
+            background: "var(--c-warning-bg)",
             padding: "10px 14px",
             borderRadius: "var(--radius-sm)",
             marginBottom: 16,
-            border: "1px solid #fde68a",
+            border: "1px solid var(--c-warning-border)",
             display: "flex",
             alignItems: "center",
             gap: 8,
@@ -221,11 +221,11 @@ export default function CohortResults({ results: r, resultsRef, onCopy }) {
                   value: v,
                   color: [
                     "",
-                    "#3b82f6",
-                    "#059669",
-                    "#d97706",
-                    "#f97316",
-                    "#dc2626",
+                    "var(--c-info)",
+                    "var(--c-accent)",
+                    "var(--c-warning)",
+                    "var(--c-orange)",
+                    "var(--c-negative)",
                   ][k],
                 }))}
               total={r.total}
@@ -267,7 +267,7 @@ export default function CohortResults({ results: r, resultsRef, onCopy }) {
                 .map(([k, v]) => ({
                   name: k.replace(" LHD", ""),
                   value: v,
-                  color: "#3b82f6",
+                  color: "var(--c-info)",
                 }))}
               total={r.total}
               compact

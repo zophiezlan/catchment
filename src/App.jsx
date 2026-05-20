@@ -377,8 +377,8 @@ export default function App() {
                 width: 7,
                 height: 7,
                 borderRadius: "50%",
-                background: "#059669",
-                boxShadow: "0 0 0 2px rgba(5, 150, 105, 0.2)",
+                background: "var(--c-accent)",
+                boxShadow: "0 0 0 2px var(--c-accent-muted)",
                 flexShrink: 0,
               }}
             />
