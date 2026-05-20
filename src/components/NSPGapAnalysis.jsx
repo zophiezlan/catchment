@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { getGapAnalysis, NEED_TIERS, getTier } from "../utils/nsp";
+import { getLHDOutcomes, LHD_OUT_NSW, LHD_OUT_SOURCE } from "../utils/lhd-outcomes";
+import { SEIFA_INDEXES } from "../utils/seifa";
 import { MetricCard, SectionLabel, Card, EmptyState } from "./Shared";
 
 const PAGE_GAP = 30;
@@ -12,10 +14,13 @@ const covColor = pct =>
  * Self-contained with its own filter/pagination state.
  */
 export default function NSPGapAnalysis() {
-  const analysis   = useMemo(() => getGapAnalysis(), []);
+  const [seifaIdx, setSeifaIdx] = useState("irsd");
+  const analysis = useMemo(() => getGapAnalysis({ seifaIndex: seifaIdx }), [seifaIdx]);
   const [tierF,  setTierF]  = useState("all");
   const [lhdF,   setLhdF]   = useState("");
   const [page,   setPage]   = useState(0);
+
+  const seifaMeta = SEIFA_INDEXES.find(s => s.key === seifaIdx);
 
   const lhdsInGaps = useMemo(() =>
     [...new Set(analysis.uncovered.map(p => p.lhd))].filter(l => l !== "—").sort(),
@@ -39,6 +44,30 @@ export default function NSPGapAnalysis() {
 
   return (
     <div>
+      {/* Intro */}
+      <Card style={{
+        marginBottom: 20, padding: "20px 24px",
+        background: "var(--c-warning-bg)",
+        borderColor: "var(--c-warning-border)",
+      }}>
+        <div style={{
+          fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600,
+          color: "var(--c-warning-text)", marginBottom: 8,
+          display: "flex", alignItems: "center", gap: 6,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1.5 12 Q3.5 5 7.5 7 Q10 9 14.5 2" />
+            <circle cx="7.5" cy="7" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+          Coverage gap analysis
+        </div>
+        <p style={{ fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text2)", margin: 0 }}>
+          NSW postcodes without exact NSP coverage, scored 0–9 on a need composite:
+          IRSD disadvantage, Indigenous population %, MMM remoteness, and distance to nearest outlet.
+          LHD-level service volume and HCV treatment data (NSW Health 2024) provide context for prioritisation.
+        </p>
+      </Card>
+
       {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 24 }} className="grid-4">
         <MetricCard label="NSW postcodes" value={summary.total.toLocaleString()} sub="with population data" />
@@ -62,50 +91,129 @@ export default function NSPGapAnalysis() {
         />
       </div>
 
-      {/* LHD coverage bars */}
-      <SectionLabel style={{ marginTop: 0 }}>LHD postcode coverage</SectionLabel>
-      <Card padding={false} style={{ marginBottom: 24 }}>
+      {/* LHD coverage + service volume */}
+      <SectionLabel style={{ marginTop: 0 }}>LHD postcode coverage &amp; service volume</SectionLabel>
+      <Card padding={false} style={{ marginBottom: 8 }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "180px 1fr 80px 110px 90px",
+          gap: 12,
+          padding: "8px 18px 6px",
+          fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+          letterSpacing: "0.06em", color: "var(--c-text3)",
+          borderBottom: "1.5px solid var(--c-border2)",
+        }}>
+          <span>LHD</span>
+          <span>PC coverage</span>
+          <span style={{ textAlign: "right" }}>%</span>
+          <span style={{ textAlign: "right" }} title="Units of injecting equipment distributed in 2024 (public + pharmacy)">Equipment 2024</span>
+          <span style={{ textAlign: "right" }} title="People initiating HCV treatment in 2024">HCV tx</span>
+        </div>
         <div style={{ padding: "4px 0" }}>
-          {lhdCoverage.map(lhd => (
-            <div key={lhd.name} style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "7px 18px",
-              borderBottom: "1px solid var(--c-border)",
-            }}>
-              <div style={{
-                width: 200, fontSize: 12, fontWeight: 500, color: "var(--c-text2)",
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0,
-              }}>
-                {lhd.name.replace(" LHD", "").replace(" Health (Network with Victoria)", "")}
-              </div>
-              <div style={{
-                flex: 1, height: 14, background: "var(--c-bg3)",
-                borderRadius: 4, overflow: "hidden",
+          {lhdCoverage.map(lhd => {
+            const out = getLHDOutcomes(lhd.name);
+            const unitsTotal = out ? out.unitsPublic + out.unitsPharmacy : 0;
+            return (
+              <div key={lhd.name} style={{
+                display: "grid",
+                gridTemplateColumns: "180px 1fr 80px 110px 90px",
+                gap: 12,
+                padding: "7px 18px",
+                borderBottom: "1px solid var(--c-border)",
+                alignItems: "center",
               }}>
                 <div style={{
-                  width: `${lhd.pct}%`, height: "100%",
-                  background: covColor(lhd.pct),
-                  borderRadius: 4,
-                  transition: "width 0.4s cubic-bezier(0.4,0,0.2,1)",
-                }} />
+                  fontSize: 12, fontWeight: 500, color: "var(--c-text2)",
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                }}>
+                  {lhd.name.replace(" LHD", "").replace(" Health (Network with Victoria)", "")}
+                </div>
+                <div style={{
+                  height: 12, background: "var(--c-bg3)",
+                  borderRadius: 4, overflow: "hidden",
+                }}>
+                  <div style={{
+                    width: `${lhd.pct}%`, height: "100%",
+                    background: covColor(lhd.pct),
+                    borderRadius: 4,
+                    transition: "width 0.4s cubic-bezier(0.4,0,0.2,1)",
+                  }} />
+                </div>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700,
+                  color: covColor(lhd.pct), textAlign: "right",
+                }}>
+                  {lhd.pct}%
+                  <span style={{ display: "block", fontSize: 9, fontWeight: 500, color: "var(--c-text3)" }}>
+                    {lhd.covered}/{lhd.total}
+                  </span>
+                </span>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600,
+                  color: "var(--c-text)", textAlign: "right",
+                }}>
+                  {unitsTotal > 0 ? (unitsTotal / 1000).toFixed(0) + "k" : "—"}
+                </span>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600,
+                  color: out && out.treatmentInits > 100 ? "var(--c-accent)" : "var(--c-text2)",
+                  textAlign: "right",
+                }}>
+                  {out ? out.treatmentInits.toLocaleString() : "—"}
+                </span>
               </div>
-              <span style={{
-                fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700,
-                color: covColor(lhd.pct), minWidth: 32, textAlign: "right",
-              }}>
-                {lhd.pct}%
-              </span>
-              <span style={{ fontSize: 11, color: "var(--c-text3)", minWidth: 56, textAlign: "right" }}>
-                {lhd.covered}/{lhd.total}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
+      <div style={{
+        fontSize: 10, color: "var(--c-text3)",
+        marginBottom: 24, padding: "0 18px", lineHeight: 1.5,
+      }}>
+        NSW 2024 totals: <strong style={{ fontFamily: "var(--font-mono)", color: "var(--c-text2)" }}>
+          {(LHD_OUT_NSW.totalUnitsDistributedPublic / 1e6).toFixed(2)}M
+        </strong> public + <strong style={{ fontFamily: "var(--font-mono)", color: "var(--c-text2)" }}>
+          {(LHD_OUT_NSW.totalUnitsDistributedPharmacy / 1e6).toFixed(2)}M
+        </strong> pharmacy units distributed · <strong style={{ fontFamily: "var(--font-mono)", color: "var(--c-text2)" }}>
+          {LHD_OUT_NSW.totalTreatmentInitiations.toLocaleString()}
+        </strong> commenced HCV treatment · <strong style={{ fontFamily: "var(--font-mono)", color: "var(--c-text2)" }}>
+          {LHD_OUT_NSW.currentInfectionNotifications.toLocaleString()}
+        </strong> new current-infection notifications.
+        Source: <a href={LHD_OUT_SOURCE.url} target="_blank" rel="noreferrer"
+          style={{ color: "var(--c-accent)", textDecoration: "none" }}>
+          {LHD_OUT_SOURCE.name}
+        </a>.
+      </div>
 
       {/* Uncovered postcodes */}
       <SectionLabel>High-need postcodes without NSP services</SectionLabel>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 14 }}>
+        <div title={seifaMeta?.description}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "4px 10px", borderRadius: "var(--radius-sm)",
+            background: "var(--c-bg2)", border: "1.5px solid var(--c-border)",
+          }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
+            color: "var(--c-text3)", textTransform: "uppercase",
+            fontFamily: "var(--font-body)",
+          }}>Score by</span>
+          <select
+            value={seifaIdx}
+            onChange={e => { setSeifaIdx(e.target.value); setPage(0); }}
+            aria-label="SEIFA index used to score disadvantage"
+            style={{
+              fontSize: 11, fontWeight: 600, fontFamily: "var(--font-body)",
+              border: "none", background: "transparent",
+              color: "var(--c-accent)", cursor: "pointer", padding: 0,
+            }}
+          >
+            {SEIFA_INDEXES.map(s => (
+              <option key={s.key} value={s.key}>{s.label}</option>
+            ))}
+          </select>
+        </div>
         {[
           { id: "all",      label: "All flagged" },
           { id: "critical", label: "Critical (≥5)" },
@@ -162,7 +270,7 @@ export default function NSPGapAnalysis() {
           }}>
             <span>PC</span><span>Suburb</span><span>Zone</span><span>LHD</span>
             <span style={{ textAlign: "right" }}>Pop</span>
-            <span style={{ textAlign: "right" }}>IRSD</span>
+            <span style={{ textAlign: "right" }} title={seifaMeta?.full}>{seifaMeta?.label || "IRSD"}</span>
             <span style={{ textAlign: "right" }}>Indig%</span>
             <span style={{ textAlign: "right" }}>Dist</span>
             <span style={{ textAlign: "center" }}>Need</span>
@@ -205,9 +313,9 @@ export default function NSPGapAnalysis() {
                 <span style={{
                   textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 11,
                   fontWeight: 600,
-                  color: p.id > 0 ? (p.id <= 2 ? "var(--c-negative)" : p.id <= 4 ? "var(--c-warning)" : "var(--c-text2)") : "var(--c-text3)",
+                  color: p.decile > 0 ? (p.decile <= 2 ? "var(--c-negative)" : p.decile <= 4 ? "var(--c-warning)" : "var(--c-text2)") : "var(--c-text3)",
                 }}>
-                  {p.id > 0 ? p.id : "—"}
+                  {p.decile > 0 ? p.decile : "—"}
                 </span>
                 <span style={{
                   textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 11,
@@ -261,7 +369,7 @@ export default function NSPGapAnalysis() {
           )}
 
           <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 12, lineHeight: 1.5 }}>
-            Need score: IRSD ≤2 (+3), ≤4 (+2), ≤6 (+1) · Indigenous ≥10% (+2), ≥3% (+1) · MMM ≥6 (+2), ≥4 (+1) · Distance &gt;100km (+2), &gt;50km (+1). Hover row for nearest outlet name.
+            Need score: {seifaMeta?.label || "IRSD"} ≤2 (+3), ≤4 (+2), ≤6 (+1) · Indigenous ≥10% (+2), ≥3% (+1) · MMM ≥6 (+2), ≥4 (+1) · Distance &gt;100km (+2), &gt;50km (+1). Switch SEIFA index above to rescore through a different lens. Hover row for nearest outlet name.
           </div>
         </>
       )}

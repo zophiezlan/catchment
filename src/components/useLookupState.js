@@ -97,12 +97,16 @@ export function useLookupState() {
   const [nspCounts, setNspCounts] = useState(null);
   const [nearestNSP, setNearestNSP] = useState(null);
   const [suburbDistances, setSuburbDistances] = useState(null);
+  const [acchsHere, setAcchsHere] = useState(null);
+  const [seifa, setSeifa] = useState(null);
 
   useEffect(() => {
     if (!d?.pc) {
       setNspCounts(null);
       setNearestNSP(null);
       setSuburbDistances(null);
+      setAcchsHere(null);
+      setSeifa(null);
       return;
     }
 
@@ -110,11 +114,18 @@ export function useLookupState() {
       import("../utils/nsp"),
       import("../data/suburb-centroids.json"),
       import("../utils/geo"),
-    ]).then(([nspMod, salMod, geoMod]) => {
+      import("../utils/acchs"),
+      import("../utils/seifa"),
+    ]).then(([nspMod, salMod, geoMod, acchsMod, seifaMod]) => {
       const { NSP_PC, getNearestPrimaryNSP, NSP_ALL } = nspMod;
       setNspCounts(NSP_PC[d.pc] ?? null);
       const nearest = getNearestPrimaryNSP(d.pc);
       setNearestNSP(nearest);
+
+      const here = acchsMod.getACCHSByPostcode(d.pc);
+      setAcchsHere(here.length > 0 ? here : null);
+
+      setSeifa(seifaMod.getSEIFA(d.pc));
 
       const salCentroids = salMod.default[d.pc];
       if (salCentroids) {
@@ -143,6 +154,8 @@ export function useLookupState() {
     nspCounts,
     nearestNSP,
     suburbDistances,
+    acchsHere,
+    seifa,
     doSearch,
     pick,
     clearSearch,

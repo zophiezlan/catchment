@@ -17,6 +17,7 @@ const CohortAnalyser = lazy(() => import("./components/CohortAnalyser"));
 const Explorer = lazy(() => import("./components/Explorer"));
 const LHDView = lazy(() => import("./components/LHDView"));
 const NSPView = lazy(() => import("./components/NSPView"));
+const NSPGapAnalysis = lazy(() => import("./components/NSPGapAnalysis"));
 
 const TABS = [
   {
@@ -140,6 +141,27 @@ const TABS = [
       </svg>
     ),
   },
+  {
+    id: "gaps",
+    label: "Gap Analysis",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M1.5 12 Q3.5 5 7.5 7 Q10 9 14.5 2" />
+        <circle cx="7.5" cy="7" r="1.5" fill="currentColor" stroke="none" />
+        <line x1="14.5" y1="2" x2="13.5" y2="4" />
+        <line x1="14.5" y1="2" x2="12.5" y2="2.5" />
+      </svg>
+    ),
+  },
 ];
 
 const TAB_IDS = new Set(TABS.map((t) => t.id));
@@ -151,6 +173,7 @@ const TAB_COMPONENTS = {
   explorer: Explorer,
   lhd: LHDView,
   nsp: NSPView,
+  gaps: NSPGapAnalysis,
 };
 
 const tabVariants = {
@@ -495,7 +518,8 @@ export default function App() {
           }}
         >
           AusPost PC001 (Feb 2026) · MMM 2023 · PHN 2017/POA 2021 · Census/SEIFA
-          2021 · NSW LHD v2.3
+          2021 · NSW LHD v2.3 · ACIC wastewater R25 (2026‑04) · AHMRC ACCHS
+          directory · NSW Health HepC 2024
         </div>
         <div
           style={{

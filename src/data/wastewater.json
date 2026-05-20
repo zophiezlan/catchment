@@ -1,0 +1,71 @@
+{
+  "source": {
+    "name": "National Wastewater Drug Monitoring Program",
+    "issuer": "Australian Criminal Intelligence Commission",
+    "report": "Report 25",
+    "published": "2026-04",
+    "url": "https://www.acic.gov.au/publications/national-wastewater-drug-monitoring-program-reports",
+    "samplingPeriod": "Aug 2024 – Aug 2025 (Year 9)",
+    "notes": "State-level annual estimated consumption (kg/year). Site-level data exists but is not extractable from the public PDF. Capital/regional averages exist as charts only. NSW has 26 sample sites covering ~70% of population."
+  },
+  "years": [
+    "2016–17", "2017–18", "2018–19", "2019–20", "2020–21",
+    "2021–22", "2022–23", "2023–24", "2024–25"
+  ],
+  "yearLabels": [
+    "Y1", "Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9"
+  ],
+  "nsw": {
+    "methylamphetamine": {
+      "annualKg": [2298.3, 2604.5, 3337.4, 3409.7, 2877.0, 2912.3, 3290.9, 3624.7, 4622.4],
+      "pctChangeYoY": 28,
+      "nationalShareY9": 29.3,
+      "notes": "At record levels. Higher consumption in regional NSW than Sydney across all 3 Y9 reporting periods."
+    },
+    "cocaine": {
+      "annualKg": [1812.3, 2397.8, 2548.0, 2988.2, 2374.5, 1622.9, 1933.7, 2784.6, 3287.2],
+      "pctChangeYoY": 18,
+      "nationalShareY9": 41.2,
+      "notes": "At record levels. Sydney sites + a regional NSW site had consistently high consumption."
+    },
+    "mdma": {
+      "annualKg": [462.8, 450.5, 834.7, 986.1, 446.1, 234.2, 334.0, 511.8, 761.9],
+      "pctChangeYoY": 49,
+      "nationalShareY9": 44.5,
+      "notes": "Sydney sites had highest capital-city MDMA; regional NSW sites had highest regional MDMA in Australia."
+    },
+    "heroin": {
+      "annualKg": [264.6, 222.2, 307.0, 323.9, 356.9, 389.6, 366.4, 444.4, 626.7],
+      "pctChangeYoY": 41,
+      "nationalShareY9": 44.9,
+      "notes": "Sydney + regional NSW sites had highest heroin consumption in Australia. Regional NSW heroin consumption far higher than regional Victoria."
+    }
+  },
+  "national": {
+    "y9TotalKg": {
+      "methylamphetamine": 15791,
+      "cocaine": 7985,
+      "mdma": 1711,
+      "heroin": 1397
+    },
+    "y9PctChange": {
+      "methylamphetamine": 23,
+      "cocaine": 17,
+      "mdma": 20,
+      "heroin": 23
+    },
+    "y9StreetValueAud": 14300000000,
+    "y9CombinedTonnesIncrease": 4.6,
+    "internationalRank": {
+      "methylamphetamine": { "rank": 2, "of": 34, "framework": "SCORE" },
+      "cocaine":           { "rank": 24, "of": 34, "framework": "SCORE" },
+      "mdma":              { "rank": 12, "of": 33, "framework": "SCORE" },
+      "cannabis":          { "rank": 7,  "of": 26, "framework": "SCORE" }
+    }
+  },
+  "siteHighlights": {
+    "fentanyl": "Site 81 (regional NSW) consistently had the highest fentanyl consumption in Australia, by some margin.",
+    "oxycodone": "Regional NSW sites had relatively high oxycodone consumption (elevated regional vs capital).",
+    "nicotine": "A regional NSW site had the highest regional nicotine consumption in Australia."
+  }
+}

@@ -3,6 +3,7 @@ import CENTROIDS from "../data/postcode-centroids.json";
 import { DATA, STATES, LHD_NAMES, ZONE_MAP, ZONE_NAMES } from "./data.js";
 import { nearestOutlet } from "./geo.js";
 import { NEED_TIERS, getTier, buildGapAnalysis } from "./nsp-gap.js";
+import { getDecile as getSeifaDecile } from "./seifa.js";
 
 export { NEED_TIERS, getTier };
 
@@ -94,7 +95,21 @@ export function hasCentroid(pc) {
   return !!CENTROIDS[pc];
 }
 
-export function getGapAnalysis() {
+/**
+ * Build NSP coverage gap analysis.
+ * @param {object} opts
+ * @param {"irsd"|"irsad"|"ier"|"ieo"} [opts.seifaIndex="irsd"] — which SEIFA
+ *   index drives the disadvantage component of the need score. Default IRSD
+ *   matches historical behaviour.
+ */
+export function getGapAnalysis({ seifaIndex = "irsd" } = {}) {
+  const getDecile = seifaIndex === "irsd"
+    ? (_pc, irsd) => irsd
+    : (pc, _irsd) => {
+        const d = getSeifaDecile(pc, seifaIndex);
+        return d > 0 ? d : 0;
+      };
+
   return buildGapAnalysis({
     data: DATA,
     states: STATES,
@@ -103,5 +118,6 @@ export function getGapAnalysis() {
     zoneMap: ZONE_MAP,
     zoneNames: ZONE_NAMES,
     getNearestNsp: getNearestNSP,
+    getDecile,
   });
 }

@@ -14,6 +14,7 @@ import {
 } from "../utils/data";
 import { MetricCard, EquityBar, Card, EmptyState } from "./Shared";
 import { useToast } from "./Toast";
+import { getDecile, SEIFA_INDEXES } from "../utils/seifa";
 
 const SEL_STYLE = {
   padding: "9px 32px 9px 12px",
@@ -45,6 +46,7 @@ export default function Explorer() {
   const [fRA, setFRA] = useState("");
   const [fPHN, setFP] = useState("");
   const [fIRSD, setFI] = useState("");
+  const [fSeifaIdx, setFSeifaIdx] = useState("irsd");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState("pc");
@@ -59,7 +61,8 @@ export default function Explorer() {
       if (fPHN && (rec[5] < 0 || PHN_CODES[rec[5]] !== fPHN)) return false;
       if (fIRSD) {
         const [lo, hi] = fIRSD.split("-").map(Number);
-        if (!rec[9] || rec[9] < lo || rec[9] > hi) return false;
+        const decile = fSeifaIdx === "irsd" ? rec[9] : getDecile(rec[0], fSeifaIdx);
+        if (!decile || decile < lo || decile > hi) return false;
       }
       if (search) {
         const s = search.toLowerCase();
@@ -81,7 +84,7 @@ export default function Explorer() {
 
   useEffect(
     () => setPage(0),
-    [fState, fZone, fRA, fPHN, fIRSD, search, sortKey, sortAsc],
+    [fState, fZone, fRA, fPHN, fIRSD, fSeifaIdx, search, sortKey, sortAsc],
   );
 
   const pageSize = 25;
@@ -120,6 +123,7 @@ export default function Explorer() {
     setFRA("");
     setFP("");
     setFI("");
+    setFSeifaIdx("irsd");
     setSearch("");
   }, []);
 
@@ -292,12 +296,23 @@ export default function Explorer() {
           ))}
         </select>
         <select
+          value={fSeifaIdx}
+          onChange={(e) => setFSeifaIdx(e.target.value)}
+          style={SEL_STYLE}
+          aria-label="SEIFA index"
+          title="Pick which SEIFA index to view/filter by"
+        >
+          {SEIFA_INDEXES.map((idx) => (
+            <option key={idx.key} value={idx.key} title={idx.full}>{idx.label}</option>
+          ))}
+        </select>
+        <select
           value={fIRSD}
           onChange={(e) => setFI(e.target.value)}
           style={SEL_STYLE}
-          aria-label="Filter by IRSD decile"
+          aria-label={`Filter by ${fSeifaIdx.toUpperCase()} decile`}
         >
-          <option value="">All IRSD</option>
+          <option value="">All deciles</option>
           <option value="1-2">Decile 1–2 (most disadvantaged)</option>
           <option value="3-4">Decile 3–4</option>
           <option value="5-6">Decile 5–6</option>
@@ -480,8 +495,9 @@ export default function Explorer() {
                   >
                     PHN
                   </th>
-                  <th onClick={() => handleSort("id")} style={thStyle("id")}>
-                    IRSD
+                  <th onClick={() => handleSort("id")} style={thStyle("id")}
+                    title={SEIFA_INDEXES.find(i => i.key === fSeifaIdx)?.full || "SEIFA"}>
+                    {fSeifaIdx.toUpperCase()}
                     <SortIcon field="id" />
                   </th>
                   <th onClick={() => handleSort("ip")} style={thStyle("ip")}>
@@ -585,7 +601,10 @@ export default function Explorer() {
                         {d.hc}
                       </td>
                       <td style={{ padding: "9px 10px", minWidth: 110 }}>
-                        <EquityBar decile={d.id} compact />
+                        <EquityBar
+                          decile={fSeifaIdx === "irsd" ? d.id : (getDecile(d.pc, fSeifaIdx) > 0 ? getDecile(d.pc, fSeifaIdx) : null)}
+                          compact
+                        />
                       </td>
                       <td
                         style={{

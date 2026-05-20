@@ -15,7 +15,9 @@
     "data:process:lhd-bounds": "node scripts/process-lhd-bounds.mjs",
     "data:process:localities": "node scripts/process-localities.mjs",
     "data:process:nsp": "node scripts/process-nsp.mjs",
-    "data:process:sal-centroids": "node scripts/process-sal-centroids.mjs"
+    "data:process:sal-centroids": "node scripts/process-sal-centroids.mjs",
+    "data:process:acchs": "node scripts/process-acchs.mjs",
+    "data:process:seifa": "node scripts/process-seifa.mjs"
   },
   "dependencies": {
     "framer-motion": "^12.38.0",
@@ -30,6 +32,7 @@
     "shapefile": "^0.6.6",
     "vite": "^5.4.2",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "xlsx": "^0.18.5"
   }
 }

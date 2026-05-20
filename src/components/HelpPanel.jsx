@@ -3,20 +3,32 @@ import { Card } from "./Shared";
 
 const SECTIONS = [
   {
+    title: "Overview",
+    text: "Top-level stats: zone distribution, IRSD disadvantage, Indigenous population, plus the NSW Demand Signal panel from ACIC wastewater drug monitoring (year-on-year heroin, meth, cocaine, MDMA consumption).",
+  },
+  {
     title: "Lookup",
-    text: "Search by postcode number or suburb name. You'll see the shipping zone, Modified Monash classification, remoteness area, Primary Health Network, and equity indicators (IRSD disadvantage decile, Indigenous population %).",
+    text: "Search by postcode number or suburb name. Shows shipping zone, MMM/RA/PHN, equity indicators (all four SEIFA indexes: IRSD, IRSAD, IER, IEO), Indigenous %, NSP services in that postcode, nearest primary NSP, and any Aboriginal Community Controlled Health Services (ACCHS).",
   },
   {
     title: "Cohort Analyser",
-    text: "Paste a list of postcodes from an event, service contacts, or distribution data. The tool extracts postcodes automatically and produces a full cohort profile — zone breakdown, PHN spread, IRSD distribution, and a copyable summary for reports. Save cohorts to compare them over time.",
+    text: "Paste a list of postcodes from an event, service contacts, or distribution data. Produces a full cohort profile — zone breakdown, PHN spread, IRSD distribution, and a copyable summary for reports. Save cohorts to compare them over time.",
   },
   {
     title: "Explorer",
-    text: "Browse and filter all 2,957 postcodes by state, zone, remoteness area, PHN, and IRSD range. Click column headers to sort. Export filtered results as CSV.",
+    text: "Browse and filter all 2,957 postcodes by state, zone, remoteness area, PHN, and any of the four SEIFA indexes (IRSD, IRSAD, IER, IEO). Switch the index dropdown to refilter and re-display the SEIFA column. Click column headers to sort. Export filtered results as CSV.",
   },
   {
     title: "NSW LHDs",
-    text: "View Local Health District profiles for NSW, including postcode count, population, Indigenous population, and IRSD disadvantage breakdown per district.",
+    text: "Local Health District profiles for NSW, including postcode count, population, Indigenous population, and IRSD disadvantage breakdown per district.",
+  },
+  {
+    title: "NSP Outlets",
+    text: "Map and list of 986 NSW NSP outlets. Toggle ACCHS overlay to see Aboriginal Community Controlled Health Services alongside. Toggle LHD boundary outlines.",
+  },
+  {
+    title: "Gap Analysis",
+    text: "NSW postcodes without exact NSP coverage, scored 0–9 (IRSD + Indigenous % + remoteness + distance to nearest outlet). LHD-level service volume (injecting equipment units distributed in 2024) and HCV treatment initiations from NSW Health show where demand is concentrated. Filter by need tier and LHD.",
   },
   {
     title: "Key terms",
@@ -24,11 +36,14 @@ const SECTIONS = [
       ["MMM", "Modified Monash Model (1=Metro to 7=Very remote)"],
       ["RA", "Remoteness Area (ABS classification, 1–5)"],
       ["PHN", "Primary Health Network — regional health planning body"],
-      [
-        "IRSD",
-        "Index of Relative Socio-economic Disadvantage (decile 1=most, 10=least)",
-      ],
+      ["IRSD", "SEIFA: Index of Relative Socio-economic Disadvantage (decile 1=most, 10=least)"],
+      ["IRSAD", "SEIFA: combined Advantage and Disadvantage"],
+      ["IER", "SEIFA: Index of Economic Resources (income, housing, assets)"],
+      ["IEO", "SEIFA: Index of Education and Occupation"],
       ["ERP", "Estimated Resident Population (ABS Census 2021)"],
+      ["NSP", "Needle and Syringe Program"],
+      ["ACCHS", "Aboriginal Community Controlled Health Service"],
+      ["LHD", "Local Health District (NSW)"],
     ],
   },
   {

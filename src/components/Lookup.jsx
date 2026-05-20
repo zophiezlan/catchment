@@ -22,6 +22,8 @@ export default function Lookup() {
     nspCounts,
     nearestNSP,
     suburbDistances,
+    acchsHere,
+    seifa,
     doSearch,
     pick,
     clearSearch,
@@ -566,6 +568,51 @@ export default function Lookup() {
                         Bottom 20% nationally
                       </div>
                     )}
+                    {seifa && (
+                      <div style={{
+                        marginTop: 10,
+                        paddingTop: 10,
+                        borderTop: "1px dashed var(--c-border)",
+                        display: "flex", flexDirection: "column", gap: 6,
+                      }}>
+                        {[
+                          { key: "irsad", label: "IRSAD" },
+                          { key: "ier",   label: "IER" },
+                          { key: "ieo",   label: "IEO" },
+                        ].map(({ key, label }) => {
+                          const dec = seifa[key];
+                          return (
+                            <div key={key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span
+                                title={key.toUpperCase() === "IRSAD"
+                                  ? "Relative Socio-economic Advantage and Disadvantage"
+                                  : key.toUpperCase() === "IER"
+                                    ? "Index of Economic Resources"
+                                    : "Index of Education and Occupation"}
+                                style={{
+                                  fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
+                                  color: "var(--c-text3)", minWidth: 42,
+                                  fontFamily: "var(--font-body)",
+                                  cursor: "help",
+                                }}>
+                                {label}
+                              </span>
+                              <div style={{ flex: 1 }}>
+                                <EquityBar decile={dec > 0 ? dec : null} compact />
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {seifa.caution && (
+                          <div style={{
+                            fontSize: 10, color: "var(--c-text3)",
+                            fontStyle: "italic", marginTop: 2,
+                          }}>
+                            ABS: use with caution — area not well represented by SA1s
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <div
@@ -657,6 +704,60 @@ export default function Lookup() {
                         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-warning-text)", marginTop: 3 }}>Pharmacies</span>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* ACCHS in this postcode */}
+              {acchsHere && (
+                <div
+                  style={{
+                    margin: "0 24px",
+                    padding: "14px 0 16px",
+                    borderTop: "1px solid var(--c-border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "var(--c-text3)",
+                      marginBottom: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#7c3aed" strokeWidth="1.5">
+                      <circle cx="7" cy="7" r="5.5" />
+                      <circle cx="7" cy="7" r="2" fill="#7c3aed" stroke="none" />
+                    </svg>
+                    Aboriginal community controlled health services
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {acchsHere.map((s, i) => (
+                      <div key={i} style={{
+                        padding: "8px 12px",
+                        borderRadius: "var(--radius-sm)",
+                        background: "#faf5ff",
+                        border: "1px solid #e9d5ff",
+                      }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", lineHeight: 1.3 }}>
+                          {s.n}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 2 }}>
+                          {[s.a, s.s].filter(Boolean).join(", ")}
+                        </div>
+                        {s.sv?.length > 0 && (
+                          <div style={{ fontSize: 10, color: "#7c3aed", marginTop: 3, fontWeight: 500 }}>
+                            {s.sv.slice(0, 4).join(" · ")}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

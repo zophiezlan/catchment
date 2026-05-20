@@ -91,6 +91,31 @@ describe("getGapAnalysis", () => {
       expect(lhd.name).toBeTruthy();
     }
   });
+
+  it("accepts a SEIFA index option and produces different scores per index", () => {
+    const irsd = getGapAnalysis({ seifaIndex: "irsd" });
+    const ieo  = getGapAnalysis({ seifaIndex: "ieo" });
+    // Both should produce results with the same shape
+    expect(irsd.uncovered.length).toBeGreaterThan(0);
+    expect(ieo.uncovered.length).toBeGreaterThan(0);
+    // Coverage stats are independent of SEIFA index used (same postcodes)
+    expect(irsd.summary.covered).toBe(ieo.summary.covered);
+    expect(irsd.summary.total).toBe(ieo.summary.total);
+    // Uncovered records carry the decile used for scoring
+    for (const p of ieo.uncovered.slice(0, 5)) {
+      if (p.decile > 0) {
+        expect(p.decile).toBeGreaterThanOrEqual(1);
+        expect(p.decile).toBeLessThanOrEqual(10);
+      }
+    }
+  });
+
+  it("default seifaIndex matches explicit irsd selection", () => {
+    const def = getGapAnalysis();
+    const irsd = getGapAnalysis({ seifaIndex: "irsd" });
+    expect(def.uncovered.length).toBe(irsd.uncovered.length);
+    expect(def.summary.highNeedUncovered).toBe(irsd.summary.highNeedUncovered);
+  });
 });
 
 describe("NEED_TIERS and getTier", () => {

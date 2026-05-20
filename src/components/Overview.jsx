@@ -11,6 +11,7 @@ import {
   irsdColor,
 } from "../utils/data";
 import { MetricCard, SectionLabel, HorizBar, MiniBar, Card } from "./Shared";
+import WastewaterPanel from "./WastewaterPanel";
 
 function DonutTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -686,6 +687,8 @@ export default function Overview() {
           </div>
         </Card>
       </div>
+
+      <WastewaterPanel />
 
       {/* State + PHN charts */}
       <div

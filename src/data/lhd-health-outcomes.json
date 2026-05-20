@@ -1,0 +1,37 @@
+{
+  "source": {
+    "name": "NSW Hepatitis C Annual Data Report, January to December 2024",
+    "issuer": "NSW Ministry of Health",
+    "published": "2025",
+    "url": "https://www.health.nsw.gov.au/hepatitis/Publications/hepatitis-c-2024-data-report.pdf",
+    "dataYear": 2024,
+    "notes": "Treatment initiations (Appendix F, Table 7) and injecting equipment distribution (Appendix G, Table 8). Reports 32 primary, 242 secondary, 657 pharmacy outlets plus 296 dispensing machines in NSW 2024."
+  },
+  "nswSummary": {
+    "primaryOutlets": 32,
+    "secondaryOutlets": 242,
+    "pharmacyOutlets": 657,
+    "dispensingMachines": 296,
+    "totalUnitsDistributedPublic": 14753446,
+    "totalUnitsDistributedPharmacy": 1436547,
+    "totalTreatmentInitiations": 1484,
+    "currentInfectionNotifications": 1186
+  },
+  "lhds": {
+    "Central Coast LHD":         { "treatmentInits": 87,  "unitsPublic": 901782,  "unitsPharmacy": 21098 },
+    "Far West LHD":              { "treatmentInits": 9,   "unitsPublic": 144275,  "unitsPharmacy": 0 },
+    "Hunter New England LHD":    { "treatmentInits": 215, "unitsPublic": 2686392, "unitsPharmacy": 433152 },
+    "Illawarra Shoalhaven LHD":  { "treatmentInits": 104, "unitsPublic": 922537,  "unitsPharmacy": 28350 },
+    "Mid North Coast LHD":       { "treatmentInits": 62,  "unitsPublic": 686817,  "unitsPharmacy": 37210 },
+    "Murrumbidgee LHD":          { "treatmentInits": 111, "unitsPublic": 608522,  "unitsPharmacy": 10695 },
+    "Nepean Blue Mountains LHD": { "treatmentInits": 66,  "unitsPublic": 837841,  "unitsPharmacy": 17952 },
+    "Northern NSW LHD":          { "treatmentInits": 106, "unitsPublic": 742636,  "unitsPharmacy": 600 },
+    "Northern Sydney LHD":       { "treatmentInits": 49,  "unitsPublic": 598910,  "unitsPharmacy": 15503 },
+    "South Eastern Sydney LHD":  { "treatmentInits": 105, "unitsPublic": 1340806, "unitsPharmacy": 122363 },
+    "South Western Sydney LHD":  { "treatmentInits": 186, "unitsPublic": 1543000, "unitsPharmacy": 330460 },
+    "Southern NSW LHD":          { "treatmentInits": 60,  "unitsPublic": 245548,  "unitsPharmacy": 6966 },
+    "Sydney LHD":                { "treatmentInits": 100, "unitsPublic": 1629877, "unitsPharmacy": 308716 },
+    "Western NSW LHD":           { "treatmentInits": 72,  "unitsPublic": 940303,  "unitsPharmacy": 10716 },
+    "Western Sydney LHD":        { "treatmentInits": 152, "unitsPublic": 924200,  "unitsPharmacy": 92766 }
+  }
+}

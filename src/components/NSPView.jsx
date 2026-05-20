@@ -10,7 +10,6 @@ import {
   NSP_PHARMACIES,
 } from "../utils/nsp";
 import { MetricCard, Card, Pill, EmptyState } from "./Shared";
-import NSPGapAnalysis from "./NSPGapAnalysis";
 
 // ── Type config ──────────────────────────────────────────────────────────────
 const TYPE = {
@@ -44,11 +43,13 @@ const normFac = f => FAC_NORM[f.toLowerCase().trim()] ?? f;
 
 // ── Leaflet map ──────────────────────────────────────────────────────────────
 function NSPMap({ outlets }) {
-  const elRef      = useRef(null);
-  const mapRef     = useRef(null);
-  const lgRef      = useRef(null);
-  const geoRef     = useRef(null);
-  const [showLHDs, setShowLHDs] = useState(false);
+  const elRef       = useRef(null);
+  const mapRef      = useRef(null);
+  const lgRef       = useRef(null);
+  const geoRef      = useRef(null);
+  const acchsLgRef  = useRef(null);
+  const [showLHDs,  setShowLHDs]  = useState(false);
+  const [showACCHS, setShowACCHS] = useState(false);
 
   // Initialise Leaflet once
   useEffect(() => {
@@ -66,9 +67,10 @@ function NSPMap({ outlets }) {
     mapRef.current = map;
     return () => {
       map.remove();
-      mapRef.current = null;
-      lgRef.current  = null;
-      geoRef.current = null;
+      mapRef.current     = null;
+      lgRef.current      = null;
+      geoRef.current     = null;
+      acchsLgRef.current = null;
     };
   }, []);
 
@@ -127,6 +129,45 @@ function NSPMap({ outlets }) {
     }
   }, [showLHDs]);
 
+  // Load / unload ACCHS overlay (Aboriginal Community Controlled Health Services)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (showACCHS) {
+      import("../utils/acchs").then(({ ACCHS_NSW, ACCHS_REGIONS }) => {
+        if (acchsLgRef.current) acchsLgRef.current.remove();
+        const lg = L.layerGroup();
+        ACCHS_NSW.forEach(s => {
+          if (s.lat == null || s.lon == null) return;
+          const region = s.r >= 0 ? ACCHS_REGIONS[s.r] : "";
+          L.circleMarker([s.lat, s.lon], {
+            radius: 6,
+            color: "white",
+            fillColor: "#7c3aed",
+            fillOpacity: 0.85,
+            weight: 1.5,
+          })
+            .bindPopup(
+              `<div style="font-family:system-ui;font-size:13px;min-width:200px;line-height:1.5">
+                <span style="display:inline-block;padding:1px 6px;background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;border-radius:100px;font-size:10px;font-weight:600;margin-bottom:4px">ACCHS</span>
+                <strong style="font-size:13px;display:block;margin:2px 0">${s.n}</strong>
+                <span style="color:var(--c-text2);font-size:12px">${s.a}${s.s ? ", " + s.s : ""}${s.p ? " " + s.p : ""}</span>
+                ${region ? `<div style="font-size:11px;color:var(--c-text3);margin-top:3px">${region} Region</div>` : ""}
+                ${s.sv?.length ? `<div style="font-size:10px;color:var(--c-text3);margin-top:4px;border-top:1px solid var(--c-border);padding-top:4px">${s.sv.join(" · ")}</div>` : ""}
+              </div>`,
+              { maxWidth: 280 }
+            )
+            .addTo(lg);
+        });
+        lg.addTo(map);
+        acchsLgRef.current = lg;
+      });
+    } else {
+      acchsLgRef.current?.remove();
+      acchsLgRef.current = null;
+    }
+  }, [showACCHS]);
+
   return (
     <div style={{ position: "relative" }}>
       <div
@@ -140,31 +181,57 @@ function NSPMap({ outlets }) {
         }}
       />
 
-      {/* LHD boundary toggle */}
-      <button
-        onClick={() => setShowLHDs(v => !v)}
-        title="Toggle LHD district boundaries"
-        style={{
-          position: "absolute", top: 12, right: 12, zIndex: 1000,
-          padding: "5px 11px",
-          fontSize: 11, fontWeight: 600, fontFamily: "var(--font-body)",
-          borderRadius: "var(--radius-sm)",
-          border: `1.5px solid ${showLHDs ? "var(--c-accent)" : "var(--c-border2)"}`,
-          background: showLHDs ? "var(--c-accent-light)" : "var(--c-surface)",
-          color: showLHDs ? "var(--c-accent)" : "var(--c-text2)",
-          cursor: "pointer", boxShadow: "var(--shadow-sm)",
-          transition: "all 0.15s ease",
-          display: "flex", alignItems: "center", gap: 5,
-        }}
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1" y="1" width="10" height="10" rx="2" />
-          <line x1="1" y1="4.5" x2="11" y2="4.5" />
-          <line x1="4.5" y1="4.5" x2="4.5" y2="11" />
-        </svg>
-        LHD boundaries
-      </button>
+      {/* Overlay toggles */}
+      <div style={{
+        position: "absolute", top: 12, right: 12, zIndex: 1000,
+        display: "flex", flexDirection: "column", gap: 6,
+      }}>
+        <button
+          onClick={() => setShowLHDs(v => !v)}
+          title="Toggle LHD district boundaries"
+          style={{
+            padding: "5px 11px",
+            fontSize: 11, fontWeight: 600, fontFamily: "var(--font-body)",
+            borderRadius: "var(--radius-sm)",
+            border: `1.5px solid ${showLHDs ? "var(--c-accent)" : "var(--c-border2)"}`,
+            background: showLHDs ? "var(--c-accent-light)" : "var(--c-surface)",
+            color: showLHDs ? "var(--c-accent)" : "var(--c-text2)",
+            cursor: "pointer", boxShadow: "var(--shadow-sm)",
+            transition: "all 0.15s ease",
+            display: "flex", alignItems: "center", gap: 5,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="1" width="10" height="10" rx="2" />
+            <line x1="1" y1="4.5" x2="11" y2="4.5" />
+            <line x1="4.5" y1="4.5" x2="4.5" y2="11" />
+          </svg>
+          LHD boundaries
+        </button>
+        <button
+          onClick={() => setShowACCHS(v => !v)}
+          title="Aboriginal Community Controlled Health Services (AHMRC member directory)"
+          style={{
+            padding: "5px 11px",
+            fontSize: 11, fontWeight: 600, fontFamily: "var(--font-body)",
+            borderRadius: "var(--radius-sm)",
+            border: `1.5px solid ${showACCHS ? "#7c3aed" : "var(--c-border2)"}`,
+            background: showACCHS ? "#ede9fe" : "var(--c-surface)",
+            color: showACCHS ? "#6d28d9" : "var(--c-text2)",
+            cursor: "pointer", boxShadow: "var(--shadow-sm)",
+            transition: "all 0.15s ease",
+            display: "flex", alignItems: "center", gap: 5,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="6" r="4.5" />
+            <circle cx="6" cy="6" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+          ACCHS
+        </button>
+      </div>
 
       {/* Legend */}
       <div
@@ -185,6 +252,14 @@ function NSPMap({ outlets }) {
             {t.label}
           </span>
         ))}
+        {showACCHS && (
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <circle cx="5" cy="5" r="4" fill="#7c3aed" />
+            </svg>
+            ACCHS
+          </span>
+        )}
       </div>
     </div>
   );
@@ -302,10 +377,6 @@ function ViewToggle({ view, onChange }) {
         <><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="2" y1="4" x2="12" y2="4" /><line x1="2" y1="7" x2="12" y2="7" /><line x1="2" y1="10" x2="9" y2="10" /></svg>List</>,
         "List view"
       )}
-      {btn("gaps",
-        <><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1 10 Q3 4 7 6 Q9 8 13 2" /><circle cx="7" cy="6" r="1.5" fill="currentColor" strokeWidth="0" /></svg>Gaps</>,
-        "Coverage gap analysis"
-      )}
     </div>
   );
 }
@@ -341,7 +412,7 @@ export default function NSPView() {
   const setLhd  = v => { setLhdF(v);  resetPage(); };
   const setQ    = v => { setSearch(v); resetPage(); };
 
-  const showFilters = view !== "gaps";
+  const showFilters = true;
 
   return (
     <div>
@@ -363,7 +434,7 @@ export default function NSPView() {
           across{" "}
           <strong style={{ color: "var(--c-text)", fontWeight: 600 }}>15 NSW Local Health Districts</strong> —
           dedicated primary outlets, secondary health services, and participating pharmacies.
-          The <strong style={{ color: "var(--c-text)" }}>Gaps</strong> view identifies high-need postcodes without exact-match coverage.
+          See the <strong style={{ color: "var(--c-text)" }}>Gap Analysis</strong> tab for high-need postcodes without exact-match coverage.
         </p>
       </Card>
 
@@ -444,16 +515,6 @@ export default function NSPView() {
         )}
       </AnimatePresence>
 
-      {/* Gaps mode has its own header row */}
-      {view === "gaps" && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text2)" }}>
-            Coverage gap analysis
-          </div>
-          <ViewToggle view={view} onChange={setView} />
-        </div>
-      )}
-
       {/* Content — map stays mounted (Leaflet can't animate out), other views use AnimatePresence */}
       <div style={{ display: view === "map" ? "block" : "none" }}>
         {filtered.length === 0
@@ -487,11 +548,6 @@ export default function NSPView() {
           </motion.div>
         )}
 
-        {view === "gaps" && (
-          <motion.div key="gaps" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <NSPGapAnalysis />
-          </motion.div>
-        )}
       </AnimatePresence>
     </div>
   );

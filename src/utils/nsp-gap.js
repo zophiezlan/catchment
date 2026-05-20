@@ -1,10 +1,13 @@
-// Need score (0-7): IRSD + Indigenous% + MMM
-function needScore(irsd, ip, mmm) {
+// Need score (0-7): SEIFA decile + Indigenous% + MMM.
+// `decile` is on the SEIFA convention where 1 = most disadvantaged / lowest score.
+// Works for any SEIFA index — IRSD, IRSAD, IER, IEO — because the disadvantage
+// direction is consistent across all four (low decile = more disadvantage).
+function needScore(decile, ip, mmm) {
   let s = 0;
-  if (irsd > 0) {
-    if (irsd <= 2) s += 3;
-    else if (irsd <= 4) s += 2;
-    else if (irsd <= 6) s += 1;
+  if (decile > 0) {
+    if (decile <= 2) s += 3;
+    else if (decile <= 4) s += 2;
+    else if (decile <= 6) s += 1;
   }
   if (ip >= 10) s += 2;
   else if (ip >= 3) s += 1;
@@ -14,8 +17,8 @@ function needScore(irsd, ip, mmm) {
 }
 
 // Distance-aware need score (0-9): base score + distance-to-nearest-outlet weighting.
-function needScoreWithDistance(irsd, ip, mmm, distanceKm) {
-  let s = needScore(irsd, ip, mmm);
+function needScoreWithDistance(decile, ip, mmm, distanceKm) {
+  let s = needScore(decile, ip, mmm);
   if (distanceKm != null) {
     if (distanceKm > 100) s += 2;
     else if (distanceKm > 50) s += 1;
@@ -67,11 +70,12 @@ function normalizeGapRow(r, zoneMap, zoneNames) {
   return { pc, pl, erp, ip, id, mmm, zn };
 }
 
-function buildUncoveredPostcodeRecord(r, lhd, zoneMap, zoneNames, getNearestNsp) {
+function buildUncoveredPostcodeRecord(r, lhd, zoneMap, zoneNames, getNearestNsp, getDecileFn) {
   const row = normalizeGapRow(r, zoneMap, zoneNames);
   const nearest = getNearestNsp(row.pc);
   const distKm = nearest ? nearest.distanceKm : null;
-  const score = needScoreWithDistance(row.id, row.ip, row.mmm, distKm);
+  const decile = getDecileFn(row.pc, row.id);
+  const score = needScoreWithDistance(decile, row.ip, row.mmm, distKm);
 
   if (score < 1) return null;
 
@@ -81,7 +85,8 @@ function buildUncoveredPostcodeRecord(r, lhd, zoneMap, zoneNames, getNearestNsp)
     lhd,
     erp: row.erp,
     ip: row.ip,
-    id: row.id,
+    id: row.id,        // always the IRSD decile for backwards compat
+    decile,            // the decile actually used for scoring (varies by selected index)
     mmm: row.mmm,
     zn: row.zn,
     score,
@@ -112,6 +117,10 @@ export function buildGapAnalysis({
   zoneMap,
   zoneNames,
   getNearestNsp,
+  // Optional: function(postcode, irsdFromRow) → decile (1–10) for the SEIFA index
+  // driving the disadvantage component. Defaults to returning IRSD from the row,
+  // which preserves existing v1 behaviour.
+  getDecile = (_pc, irsd) => irsd,
 }) {
   const summary = { total: 0, covered: 0, coveredPct: 0, highNeedUncovered: 0 };
   const lhdMap = {};
@@ -131,7 +140,8 @@ export function buildGapAnalysis({
         lhd,
         zoneMap,
         zoneNames,
-        getNearestNsp
+        getNearestNsp,
+        getDecile,
       );
       if (!uncoveredRecord) return;
       uncovered.push(uncoveredRecord);
