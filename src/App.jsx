@@ -16,7 +16,7 @@ const Lookup = lazy(() => import("./components/Lookup"));
 const CohortAnalyser = lazy(() => import("./components/CohortAnalyser"));
 const Explorer = lazy(() => import("./components/Explorer"));
 const LHDView = lazy(() => import("./components/LHDView"));
-const NSPView = lazy(() => import("./components/NSPView"));
+const MapView = lazy(() => import("./components/MapView"));
 const NSPGapAnalysis = lazy(() => import("./components/NSPGapAnalysis"));
 
 const TABS = [
@@ -122,8 +122,8 @@ const TABS = [
     ),
   },
   {
-    id: "nsp",
-    label: "NSP Outlets",
+    id: "map",
+    label: "Map",
     icon: (
       <svg
         width="16"
@@ -135,9 +135,9 @@ const TABS = [
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <circle cx="8" cy="6" r="2.5" />
-        <path d="M8 8.5v5.5" />
-        <path d="M3 6a5 5 0 0 1 10 0c0 3.5-5 7.5-5 7.5S3 9.5 3 6z" />
+        <polygon points="2,13 6,3 10,7 14,2 14,12 10,14 6,12" />
+        <line x1="6" y1="3" x2="6" y2="12" />
+        <line x1="10" y1="7" x2="10" y2="14" />
       </svg>
     ),
   },
@@ -172,8 +172,13 @@ const TAB_COMPONENTS = {
   cohort: CohortAnalyser,
   explorer: Explorer,
   lhd: LHDView,
-  nsp: NSPView,
+  map: MapView,
   gaps: NSPGapAnalysis,
+};
+
+// Legacy hash redirects: keep old shared links working.
+const HASH_REDIRECTS = {
+  nsp: "map",
 };
 
 const tabVariants = {
@@ -214,6 +219,11 @@ function getInitialTab() {
   const hash = window.location.hash.slice(1);
   // Support cohort share links: #cohort/2000,2010,...
   if (hash.startsWith("cohort/")) return "cohort";
+  if (HASH_REDIRECTS[hash]) {
+    const target = HASH_REDIRECTS[hash];
+    window.history.replaceState(null, "", `#${target}`);
+    return target;
+  }
   return TAB_IDS.has(hash) ? hash : "overview";
 }
 
@@ -225,6 +235,12 @@ export default function App() {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.slice(1);
+      if (HASH_REDIRECTS[hash]) {
+        const target = HASH_REDIRECTS[hash];
+        window.history.replaceState(null, "", `#${target}`);
+        setTab(target);
+        return;
+      }
       if (TAB_IDS.has(hash)) setTab(hash);
     };
     window.addEventListener("hashchange", onHashChange);

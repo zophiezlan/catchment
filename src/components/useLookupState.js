@@ -96,6 +96,8 @@ export function useLookupState() {
 
   const [nspCounts, setNspCounts] = useState(null);
   const [nearestNSP, setNearestNSP] = useState(null);
+  const [nearestOTP, setNearestOTP] = useState(null);
+  const [nearestACCHS, setNearestACCHS] = useState(null);
   const [suburbDistances, setSuburbDistances] = useState(null);
   const [acchsHere, setAcchsHere] = useState(null);
   const [otpHere, setOtpHere] = useState(null);
@@ -105,6 +107,8 @@ export function useLookupState() {
     if (!d?.pc) {
       setNspCounts(null);
       setNearestNSP(null);
+      setNearestOTP(null);
+      setNearestACCHS(null);
       setSuburbDistances(null);
       setAcchsHere(null);
       setOtpHere(null);
@@ -115,15 +119,15 @@ export function useLookupState() {
     Promise.all([
       import("../utils/nsp"),
       import("../data/suburb-centroids.json"),
+      import("../data/postcode-centroids.json"),
       import("../utils/geo"),
       import("../utils/acchs"),
       import("../utils/otp"),
       import("../utils/seifa"),
-    ]).then(([nspMod, salMod, geoMod, acchsMod, otpMod, seifaMod]) => {
+    ]).then(([nspMod, salMod, pcMod, geoMod, acchsMod, otpMod, seifaMod]) => {
       const { NSP_PC, getNearestPrimaryNSP, NSP_ALL } = nspMod;
       setNspCounts(NSP_PC[d.pc] ?? null);
-      const nearest = getNearestPrimaryNSP(d.pc);
-      setNearestNSP(nearest);
+      setNearestNSP(getNearestPrimaryNSP(d.pc));
 
       const here = acchsMod.getACCHSByPostcode(d.pc);
       setAcchsHere(here.length > 0 ? here : null);
@@ -131,6 +135,16 @@ export function useLookupState() {
       setOtpHere(otpMod.getOTPByPostcode(d.pc));
 
       setSeifa(seifaMod.getSEIFA(d.pc));
+
+      const pcCentroid = pcMod.default[d.pc];
+      if (pcCentroid) {
+        const [lat, lon] = pcCentroid;
+        setNearestOTP(geoMod.nearestOutlet(lat, lon, otpMod.OTP_ALL));
+        setNearestACCHS(geoMod.nearestOutlet(lat, lon, acchsMod.ACCHS_NSW));
+      } else {
+        setNearestOTP(null);
+        setNearestACCHS(null);
+      }
 
       const salCentroids = salMod.default[d.pc];
       if (salCentroids) {
@@ -158,6 +172,8 @@ export function useLookupState() {
     multiState,
     nspCounts,
     nearestNSP,
+    nearestOTP,
+    nearestACCHS,
     suburbDistances,
     acchsHere,
     otpHere,

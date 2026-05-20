@@ -21,6 +21,8 @@ export default function Lookup() {
     multiState,
     nspCounts,
     nearestNSP,
+    nearestOTP,
+    nearestACCHS,
     suburbDistances,
     acchsHere,
     otpHere,
@@ -840,7 +842,7 @@ export default function Lookup() {
                       ))}
                       {otpHere.sites.length > 4 && (
                         <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 2, fontStyle: "italic" }}>
-                          + {otpHere.sites.length - 4} more in this postcode — see NSP Outlets tab for full map
+                          + {otpHere.sites.length - 4} more in this postcode — see Map tab for full view
                         </div>
                       )}
                     </div>
@@ -902,8 +904,8 @@ export default function Lookup() {
                 </div>
               )}
 
-              {/* Nearest primary NSP — shown for NSW postcodes */}
-              {nearestNSP && (
+              {/* Nearest services — primary NSP / OTP / ACCHS for NSW postcodes */}
+              {(nearestNSP || nearestOTP || nearestACCHS) && (
                 <div
                   style={{
                     margin: "0 24px",
@@ -928,48 +930,64 @@ export default function Lookup() {
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M1 7h12M9 3l4 4-4 4" />
                     </svg>
-                    Nearest primary NSP
+                    Nearest services
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "10px 14px",
-                      borderRadius: "var(--radius-sm)",
-                      background: nearestNSP.distanceKm > 50 ? "var(--c-error-bg)" : nearestNSP.distanceKm > 20 ? "var(--c-warning-bg)" : "var(--c-zone2-bg)",
-                      border: `1px solid ${nearestNSP.distanceKm > 50 ? "var(--c-error-border)" : nearestNSP.distanceKm > 20 ? "var(--c-warning-border)" : "rgba(5,150,105,0.2)"}`,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: 13, fontWeight: 600,
-                        color: "var(--c-text)", lineHeight: 1.3,
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>
-                        {nearestNSP.outlet.n}
-                      </div>
-                      {nearestNSP.outlet.s && (
-                        <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 2 }}>
-                          {nearestNSP.outlet.s}{nearestNSP.outlet.p ? ` ${nearestNSP.outlet.p}` : ""}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {[
+                      { key: "nsp",   label: "Primary NSP", swatch: "#059669", result: nearestNSP },
+                      { key: "otp",   label: "OTP site",    swatch: "#ea580c", result: nearestOTP },
+                      { key: "acchs", label: "ACCHS",       swatch: "#7c3aed", result: nearestACCHS },
+                    ].filter(r => r.result).map(({ key, label, swatch, result }) => {
+                      const km = result.distanceKm;
+                      const far = km > 50;
+                      const warn = km > 20 && !far;
+                      return (
+                        <div key={key}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 12,
+                            padding: "10px 14px",
+                            borderRadius: "var(--radius-sm)",
+                            background: far ? "var(--c-error-bg)" : warn ? "var(--c-warning-bg)" : "var(--c-zone2-bg)",
+                            border: `1px solid ${far ? "var(--c-error-border)" : warn ? "var(--c-warning-border)" : "rgba(5,150,105,0.2)"}`,
+                          }}
+                        >
+                          <span aria-hidden style={{
+                            width: 8, height: 8, borderRadius: "50%",
+                            background: swatch, flexShrink: 0,
+                          }} />
+                          <div style={{ width: 78, flexShrink: 0, fontSize: 11, fontWeight: 600, color: "var(--c-text3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                            {label}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontSize: 13, fontWeight: 600,
+                              color: "var(--c-text)", lineHeight: 1.3,
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                              {result.outlet.n}
+                            </div>
+                            {result.outlet.s && (
+                              <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 2 }}>
+                                {result.outlet.s}{result.outlet.p ? ` ${result.outlet.p}` : ""}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{
+                            fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700,
+                            color: far ? "var(--c-negative)" : warn ? "var(--c-warning)" : "var(--c-positive)",
+                            whiteSpace: "nowrap",
+                          }}>
+                            {km < 1 ? "< 1 km" : `${km} km`}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div style={{
-                      fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700,
-                      color: nearestNSP.distanceKm > 50 ? "var(--c-negative)" : nearestNSP.distanceKm > 20 ? "var(--c-warning)" : "var(--c-positive)",
-                      whiteSpace: "nowrap",
-                    }}>
-                      {nearestNSP.distanceKm < 1
-                        ? "< 1 km"
-                        : `${nearestNSP.distanceKm} km`}
-                    </div>
+                      );
+                    })}
                   </div>
-                  {nearestNSP.distanceKm > 50 && (
+                  {nearestNSP && nearestNSP.distanceKm > 50 && (
                     <div style={{
                       display: "inline-flex", alignItems: "center", gap: 4,
                       fontSize: 11, fontWeight: 600, color: "var(--c-error-text)",
-                      marginTop: 6, padding: "3px 8px", borderRadius: 6,
+                      marginTop: 8, padding: "3px 8px", borderRadius: 6,
                       background: "var(--c-error-bg)", border: "1px solid var(--c-error-border)",
                     }}>
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">

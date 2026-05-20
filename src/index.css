@@ -69,6 +69,9 @@
   --c-error-bg: #fef2f2;
   --c-error-border: #fecaca;
 
+  /* ACCHS — purple */
+  --c-acchs: #7c3aed;
+
   /* Orange (mid-range severity) */
   --c-orange: #f97316;
   --c-orange-text: #9a3412;
