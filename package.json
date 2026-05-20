@@ -17,7 +17,8 @@
     "data:process:nsp": "node scripts/process-nsp.mjs",
     "data:process:sal-centroids": "node scripts/process-sal-centroids.mjs",
     "data:process:acchs": "node scripts/process-acchs.mjs",
-    "data:process:seifa": "node scripts/process-seifa.mjs"
+    "data:process:seifa": "node scripts/process-seifa.mjs",
+    "data:process:otp": "node scripts/process-otp.mjs"
   },
   "dependencies": {
     "framer-motion": "^12.38.0",

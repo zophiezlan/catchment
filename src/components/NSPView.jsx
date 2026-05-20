@@ -48,8 +48,10 @@ function NSPMap({ outlets }) {
   const lgRef       = useRef(null);
   const geoRef      = useRef(null);
   const acchsLgRef  = useRef(null);
+  const otpLgRef    = useRef(null);
   const [showLHDs,  setShowLHDs]  = useState(false);
   const [showACCHS, setShowACCHS] = useState(false);
+  const [showOTP,   setShowOTP]   = useState(false);
 
   // Initialise Leaflet once
   useEffect(() => {
@@ -71,6 +73,7 @@ function NSPMap({ outlets }) {
       lgRef.current      = null;
       geoRef.current     = null;
       acchsLgRef.current = null;
+      otpLgRef.current   = null;
     };
   }, []);
 
@@ -168,6 +171,49 @@ function NSPMap({ outlets }) {
     }
   }, [showACCHS]);
 
+  // Load / unload OTP overlay (pharmacies + public clinics)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (showOTP) {
+      import("../utils/otp").then(({ OTP_ALL, OTP_LHDS, OTP_SOURCES }) => {
+        if (otpLgRef.current) otpLgRef.current.remove();
+        const lg = L.layerGroup();
+        OTP_ALL.forEach((s) => {
+          if (s.lat == null || s.lon == null) return;
+          const isClinic = s.t === "public-clinic";
+          const hasLaib = s.sv?.includes("laib");
+          const lhdName = s.l >= 0 ? OTP_LHDS[s.l] : "";
+          const src = OTP_SOURCES[s.src];
+          L.circleMarker([s.lat, s.lon], {
+            radius: isClinic ? 7 : 4,
+            color: "white",
+            fillColor: isClinic ? "#9a3412" : "#ea580c",
+            fillOpacity: isClinic ? 0.9 : 0.75,
+            weight: isClinic ? 2 : 1,
+          })
+            .bindPopup(
+              `<div style="font-family:system-ui;font-size:13px;min-width:200px;line-height:1.5">
+                <span style="display:inline-block;padding:1px 6px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;border-radius:100px;font-size:10px;font-weight:600;margin-bottom:4px">${isClinic ? "OTP CLINIC" : "OTP PHARMACY"}</span>
+                ${hasLaib ? `<span style="display:inline-block;padding:1px 6px;background:#fffbeb;color:#a16207;border:1px solid #fde68a;border-radius:100px;font-size:10px;font-weight:600;margin-left:4px;margin-bottom:4px">LAIB</span>` : ""}
+                <strong style="font-size:13px;display:block;margin:2px 0">${s.n}</strong>
+                <span style="color:var(--c-text2);font-size:12px">${s.a}${s.s ? ", " + s.s : ""}${s.p ? " " + s.p : ""}</span>
+                ${lhdName ? `<div style="font-size:11px;color:var(--c-text3);margin-top:3px">${lhdName}</div>` : ""}
+                ${src ? `<div style="font-size:10px;color:var(--c-text3);margin-top:4px;border-top:1px solid var(--c-border);padding-top:4px">Source: ${src.label}${src.updated ? ` · ${src.updated}` : ""}</div>` : ""}
+              </div>`,
+              { maxWidth: 280 },
+            )
+            .addTo(lg);
+        });
+        lg.addTo(map);
+        otpLgRef.current = lg;
+      });
+    } else {
+      otpLgRef.current?.remove();
+      otpLgRef.current = null;
+    }
+  }, [showOTP]);
+
   return (
     <div style={{ position: "relative" }}>
       <div
@@ -231,6 +277,28 @@ function NSPMap({ outlets }) {
           </svg>
           ACCHS
         </button>
+        <button
+          onClick={() => setShowOTP(v => !v)}
+          title="Opioid Treatment Program — community pharmacies + public clinics dispensing methadone, buprenorphine, or LAIB"
+          style={{
+            padding: "5px 11px",
+            fontSize: 11, fontWeight: 600, fontFamily: "var(--font-body)",
+            borderRadius: "var(--radius-sm)",
+            border: `1.5px solid ${showOTP ? "#ea580c" : "var(--c-border2)"}`,
+            background: showOTP ? "#fff7ed" : "var(--c-surface)",
+            color: showOTP ? "#9a3412" : "var(--c-text2)",
+            cursor: "pointer", boxShadow: "var(--shadow-sm)",
+            transition: "all 0.15s ease",
+            display: "flex", alignItems: "center", gap: 5,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2.5" y="2" width="7" height="8.5" rx="1.2" />
+            <path d="M4.5 5h3M4.5 7h3M4.5 9h2" />
+          </svg>
+          OTP
+        </button>
       </div>
 
       {/* Legend */}
@@ -259,6 +327,22 @@ function NSPMap({ outlets }) {
             </svg>
             ACCHS
           </span>
+        )}
+        {showOTP && (
+          <>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <circle cx="5" cy="5" r="4" fill="#ea580c" />
+              </svg>
+              OTP pharmacy
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="10" height="10" viewBox="0 0 10 10">
+                <circle cx="5" cy="5" r="4" fill="#9a3412" />
+              </svg>
+              OTP clinic
+            </span>
+          </>
         )}
       </div>
     </div>

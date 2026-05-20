@@ -23,6 +23,7 @@ export default function Lookup() {
     nearestNSP,
     suburbDistances,
     acchsHere,
+    otpHere,
     seifa,
     doSearch,
     pick,
@@ -705,6 +706,145 @@ export default function Lookup() {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* OTP sites in this postcode (pharmacies + public clinics) */}
+              {otpHere && (
+                <div
+                  style={{
+                    margin: "0 24px",
+                    padding: "14px 0 16px",
+                    borderTop: "1px solid var(--c-border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "var(--c-text3)",
+                      marginBottom: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#c2410c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="2" width="8" height="10" rx="1.5" />
+                      <path d="M5 5h4M5 7h4M5 9h2" />
+                    </svg>
+                    Opioid Treatment Program sites
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: otpHere.sites.length > 0 ? 10 : 0 }}>
+                    {otpHere.pharmacy > 0 && (
+                      <div style={{
+                        display: "flex", flexDirection: "column", alignItems: "center",
+                        padding: "8px 14px", borderRadius: "var(--radius-sm)",
+                        background: "#fff7ed", border: "1px solid #fed7aa",
+                      }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 700, color: "#c2410c", lineHeight: 1 }}>
+                          {otpHere.pharmacy}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#9a3412", marginTop: 3 }}>
+                          {otpHere.pharmacy === 1 ? "Pharmacy" : "Pharmacies"}
+                        </span>
+                      </div>
+                    )}
+                    {otpHere.clinic > 0 && (
+                      <div style={{
+                        display: "flex", flexDirection: "column", alignItems: "center",
+                        padding: "8px 14px", borderRadius: "var(--radius-sm)",
+                        background: "#fff7ed", border: "1px solid #fdba74",
+                      }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 700, color: "#9a3412", lineHeight: 1 }}>
+                          {otpHere.clinic}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#7c2d12", marginTop: 3 }}>
+                          Public clinic{otpHere.clinic === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    )}
+                    {otpHere.laib > 0 && (
+                      <div
+                        title="Long-acting injectable buprenorphine — monthly injection alternative to daily dosing"
+                        style={{
+                          display: "flex", flexDirection: "column", alignItems: "center",
+                          padding: "8px 14px", borderRadius: "var(--radius-sm)",
+                          background: "#fffbeb", border: "1px solid #fde68a",
+                          cursor: "help",
+                        }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 700, color: "#a16207", lineHeight: 1 }}>
+                          {otpHere.laib}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#854d0e", marginTop: 3 }}>
+                          LAIB
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {otpHere.sites.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {otpHere.sites.slice(0, 4).map((s, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: "var(--radius-sm)",
+                            background: "#fff7ed",
+                            border: "1px solid #fed7aa",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontSize: 12, fontWeight: 600, color: "var(--c-text)",
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                              {s.n}
+                            </div>
+                            {s.a && s.a !== s.n && (
+                              <div style={{ fontSize: 10, color: "var(--c-text3)", marginTop: 1 }}>
+                                {s.a}
+                              </div>
+                            )}
+                          </div>
+                          {s.sv?.includes("laib") && (
+                            <span
+                              title="Also offers long-acting injectable buprenorphine"
+                              style={{
+                                fontSize: 9, fontWeight: 700, letterSpacing: "0.05em",
+                                padding: "2px 5px", borderRadius: 4,
+                                background: "#fffbeb", color: "#a16207",
+                                border: "1px solid #fde68a",
+                              }}
+                            >
+                              LAIB
+                            </span>
+                          )}
+                          {s.t === "public-clinic" && (
+                            <span style={{
+                              fontSize: 9, fontWeight: 700, letterSpacing: "0.05em",
+                              padding: "2px 5px", borderRadius: 4,
+                              background: "#fff7ed", color: "#9a3412",
+                              border: "1px solid #fdba74",
+                            }}>
+                              CLINIC
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      {otpHere.sites.length > 4 && (
+                        <div style={{ fontSize: 11, color: "var(--c-text3)", marginTop: 2, fontStyle: "italic" }}>
+                          + {otpHere.sites.length - 4} more in this postcode — see NSP Outlets tab for full map
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
